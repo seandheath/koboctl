@@ -31,7 +31,7 @@ func TestGenerateNickelMenuConfig_ChainEntry(t *testing.T) {
 			Label:    "KOReader",
 			Action:   "dbg_toast",
 			Arg:      "Starting KOReader...",
-			Chain:    "cmd_spawn:quiet:/mnt/onboard/.adds/kfmon/bin/kfmon-ipc.sh trigger koreader",
+			Chain:    "cmd_spawn:quiet:/usr/bin/kfmon-ipc trigger koreader",
 		},
 	}
 	got := config.GenerateNickelMenuConfig(entries)
@@ -41,7 +41,7 @@ func TestGenerateNickelMenuConfig_ChainEntry(t *testing.T) {
 		t.Errorf("missing menu_item line in:\n%s", got)
 	}
 	// Must contain the chain_success line with the full path (colons in arg preserved).
-	if !strings.Contains(got, "chain_success :cmd_spawn :quiet:/mnt/onboard/.adds/kfmon/bin/kfmon-ipc.sh trigger koreader") {
+	if !strings.Contains(got, "chain_success :cmd_spawn :quiet:/usr/bin/kfmon-ipc trigger koreader") {
 		t.Errorf("missing or mangled chain_success line in:\n%s", got)
 	}
 }

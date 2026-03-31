@@ -28,7 +28,7 @@ location = "main"
 label = "KOReader"
 action = "dbg_toast"
 arg = "Starting KOReader..."
-chain = "cmd_spawn:quiet:/mnt/onboard/.adds/kfmon/bin/kfmon-ipc.sh trigger koreader"
+chain = "cmd_spawn:quiet:/usr/bin/kfmon-ipc trigger koreader"
 
 [kfmon]
 enabled = true
@@ -95,7 +95,7 @@ func TestLoadManifest(t *testing.T) {
 		if e.Label != "KOReader" {
 			t.Errorf("NickelMenu.Entries[0].Label = %q, want %q", e.Label, "KOReader")
 		}
-		if e.Chain != "cmd_spawn:quiet:/mnt/onboard/.adds/kfmon/bin/kfmon-ipc.sh trigger koreader" {
+		if e.Chain != "cmd_spawn:quiet:/usr/bin/kfmon-ipc trigger koreader" {
 			t.Errorf("NickelMenu.Entries[0].Chain = %q (unexpected)", e.Chain)
 		}
 	}

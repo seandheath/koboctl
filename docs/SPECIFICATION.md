@@ -129,7 +129,7 @@ version = "latest"
   label = "KOReader"
   action = "dbg_toast"
   arg = "Starting KOReader..."
-  chain = "cmd_spawn:quiet:/mnt/onboard/.adds/kfmon/bin/kfmon-ipc.sh trigger koreader"
+  chain = "cmd_spawn:quiet:/usr/bin/kfmon-ipc trigger koreader"
 
 [kfmon]
 enabled = true

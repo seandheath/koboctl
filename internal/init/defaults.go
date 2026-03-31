@@ -12,7 +12,7 @@ var koreaderNMEntry = manifest.NickelMenuEntry{
 	Label:    "KOReader",
 	Action:   "dbg_toast",
 	Arg:      "Starting KOReader...",
-	Chain:    "cmd_spawn:quiet:/mnt/onboard/.adds/kfmon/bin/kfmon-ipc.sh trigger koreader",
+	Chain:    "cmd_spawn:quiet:/usr/bin/kfmon-ipc trigger koreader",
 }
 
 // cleanBrowsingDNS is the CleanBrowsing Family Filter resolver pair.
