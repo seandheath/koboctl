@@ -60,7 +60,7 @@ Also called automatically by 'koboctl provision' when hardening.enabled = true.`
 				return fmt.Errorf("detecting device: %w", err)
 			}
 
-			return RunHarden(di.MountPoint, m.Hardening, dryRun)
+			return RunHarden(di.MountPoint, m.Hardening, dryRun, false)
 		},
 	}
 
@@ -76,7 +76,9 @@ type hardenStep struct {
 
 // RunHarden executes all hardening operations for the given manifest config.
 // In dry-run mode, it prints what would be done without writing any files.
-func RunHarden(mountPoint string, cfg manifest.HardeningConfig, dryRun bool) error {
+// When skipGuard is true, the KoboRoot guard step is skipped (used during
+// provision when a merged KoboRoot.tgz needs to be processed on first reboot).
+func RunHarden(mountPoint string, cfg manifest.HardeningConfig, dryRun bool, skipGuard bool) error {
 	steps := []hardenStep{
 		// USB-direct operations (FAT32, written immediately).
 		{
@@ -87,11 +89,17 @@ func RunHarden(mountPoint string, cfg manifest.HardeningConfig, dryRun bool) err
 			name: "Analytics trigger",
 			fn:   func() error { return hardening.InstallAnalyticsTrigger(mountPoint) },
 		},
-		{
+	}
+
+	if !skipGuard {
+		steps = append(steps, hardenStep{
 			name: "KoboRoot guard",
 			fn:   func() error { return hardening.GuardKoboRoot(mountPoint) },
-		},
-		{
+		})
+	}
+
+	steps = append(steps,
+		hardenStep{
 			name: "Plugin removal",
 			fn: func() error {
 				removed, err := hardening.RemoveDangerousPlugins(mountPoint)
@@ -107,27 +115,27 @@ func RunHarden(mountPoint string, cfg manifest.HardeningConfig, dryRun bool) err
 			},
 		},
 		// Staged boot scripts (written to FAT32, executed on boot).
-		{
+		hardenStep{
 			name: "Hosts blocklist",
 			fn:   func() error { return hardening.StageHostsBlocklist(mountPoint, cfg) },
 		},
-		{
+		hardenStep{
 			name: "DNS lockdown",
 			fn:   func() error { return hardening.StageDNSLockdown(mountPoint, cfg) },
 		},
-		{
+		hardenStep{
 			name: "Devmode disable",
 			fn:   func() error { return hardening.StageDevmodeDisable(mountPoint, cfg) },
 		},
-		{
+		hardenStep{
 			name: "Boot hook runner",
 			fn:   func() error { return hardening.StageBootHookRunner(mountPoint) },
 		},
-		{
+		hardenStep{
 			name: "KFMon boot config",
 			fn:   func() error { return hardening.StageKFMonBootConfig(mountPoint) },
 		},
-	}
+	)
 
 	for _, step := range steps {
 		if dryRun {

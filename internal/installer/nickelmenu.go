@@ -22,57 +22,25 @@ const (
 	nickelMenuKoboRoot = ".kobo/KoboRoot.tgz"
 )
 
-// InstallNickelMenu downloads KoboRoot.tgz and places it at .kobo/KoboRoot.tgz.
+// InstallNickelMenu writes NickelMenu configuration to the Kobo filesystem.
 //
-// Installation mechanism: Kobo firmware detects KoboRoot.tgz on the next boot,
-// extracts it, and creates .adds/nm/. The tgz file is consumed and removed by the
-// firmware after processing.
+// The KoboRoot.tgz payload is NOT placed here — it is fetched separately via
+// FetchNickelMenuTgz and merged with other KoboRoot payloads (e.g. KFMon) by
+// the provision command.
 //
-// Idempotency: checked against .adds/nm/ presence, NOT KoboRoot.tgz existence
-// (since the tgz disappears after the first boot).
+// Idempotency: checked against .adds/nm/ presence (created after Kobo processes
+// KoboRoot.tgz on first reboot).
 func InstallNickelMenu(ctx context.Context, mountPath string, cfg manifest.NickelMenuConfig, ghClient *fetch.GitHubClient) error {
 	if !cfg.Enabled {
 		return nil
 	}
 
-	// Check idempotency via .adds/nm/ directory.
 	installed, err := IsNickelMenuInstalled(mountPath)
 	if err != nil {
 		return err
 	}
 	if installed {
-		fmt.Fprintf(os.Stderr, "nickelmenu: already installed, skipping KoboRoot.tgz placement\n")
-	} else {
-		tag, assets, err := resolveVersion(ctx, ghClient, nickelMenuOwner, nickelMenuRepo, cfg.Version)
-		if err != nil {
-			return fmt.Errorf("nickelmenu: resolving version: %w", err)
-		}
-
-		asset, err := fetch.FindAsset(assets, nickelMenuPattern)
-		if err != nil {
-			return fmt.Errorf("nickelmenu: finding release asset: %w", err)
-		}
-
-		tgzPath, err := ghClient.FetchAsset(ctx, "nickelmenu", tag, asset)
-		if err != nil {
-			return fmt.Errorf("nickelmenu: downloading: %w", err)
-		}
-
-		// Place KoboRoot.tgz at .kobo/KoboRoot.tgz for Kobo firmware to process on reboot.
-		dest := filepath.Join(mountPath, nickelMenuKoboRoot)
-		if err := os.MkdirAll(filepath.Dir(dest), 0o755); err != nil {
-			return fmt.Errorf("nickelmenu: creating .kobo/ directory: %w", err)
-		}
-
-		fmt.Fprintf(os.Stderr, "nickelmenu: placing KoboRoot.tgz for firmware installation...\n")
-		data, err := os.ReadFile(tgzPath)
-		if err != nil {
-			return fmt.Errorf("nickelmenu: reading downloaded tgz: %w", err)
-		}
-		if err := os.WriteFile(dest, data, 0o644); err != nil {
-			return fmt.Errorf("nickelmenu: placing KoboRoot.tgz: %w", err)
-		}
-		fmt.Fprintf(os.Stderr, "nickelmenu: %s placed; will be installed on next Kobo reboot\n", tag)
+		fmt.Fprintf(os.Stderr, "nickelmenu: already installed\n")
 	}
 
 	// Write menu config (always — can be written before .adds/nm/ exists;
@@ -84,6 +52,34 @@ func InstallNickelMenu(ctx context.Context, mountPath string, cfg manifest.Nicke
 	}
 
 	return nil
+}
+
+// FetchNickelMenuTgz downloads the NickelMenu KoboRoot.tgz and returns its raw bytes.
+// The caller is responsible for merging it with other KoboRoot payloads via
+// MergeKoboRootTgz before placing on the device.
+func FetchNickelMenuTgz(ctx context.Context, cfg manifest.NickelMenuConfig, ghClient *fetch.GitHubClient) ([]byte, error) {
+	tag, assets, err := resolveVersion(ctx, ghClient, nickelMenuOwner, nickelMenuRepo, cfg.Version)
+	if err != nil {
+		return nil, fmt.Errorf("nickelmenu: resolving version: %w", err)
+	}
+
+	asset, err := fetch.FindAsset(assets, nickelMenuPattern)
+	if err != nil {
+		return nil, fmt.Errorf("nickelmenu: finding release asset: %w", err)
+	}
+
+	tgzPath, err := ghClient.FetchAsset(ctx, "nickelmenu", tag, asset)
+	if err != nil {
+		return nil, fmt.Errorf("nickelmenu: downloading: %w", err)
+	}
+
+	data, err := os.ReadFile(tgzPath)
+	if err != nil {
+		return nil, fmt.Errorf("nickelmenu: reading downloaded tgz: %w", err)
+	}
+
+	fmt.Fprintf(os.Stderr, "nickelmenu: fetched %s KoboRoot.tgz\n", tag)
+	return data, nil
 }
 
 // IsNickelMenuInstalled returns true if the .adds/nm/ directory exists.

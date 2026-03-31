@@ -1,9 +1,12 @@
 package installer
 
 import (
+	"archive/zip"
+	"bytes"
 	"context"
 	_ "embed"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -33,10 +36,10 @@ const (
 
 // InstallKFMon extracts the embedded KFMon zip to the Kobo filesystem.
 //
-// KFMon's zip extracts config files and icons to .adds/kfmon/ and places
-// .kobo/KoboRoot.tgz on the FAT32 partition. The KoboRoot.tgz is processed by
-// Kobo firmware on the next reboot to install KFMon's binary and kernel hooks
-// to the ext4 system partition — do not extract it manually.
+// KFMon's zip contains config files, icons, and a KoboRoot.tgz payload. This
+// function extracts only the FAT32 config/icon files. The KoboRoot.tgz is NOT
+// placed here — it is merged with other KoboRoot payloads (e.g. NickelMenu) by
+// the provision command via MergeKoboRootTgz.
 func InstallKFMon(ctx context.Context, mountPath string, cfg manifest.KFMonConfig, _ *fetch.GitHubClient) error {
 	if !cfg.Enabled {
 		return nil
@@ -70,7 +73,13 @@ func InstallKFMon(ctx context.Context, mountPath string, cfg manifest.KFMonConfi
 // kfmonZipRemap transforms KFMon zip entry names to their on-device paths.
 // The upstream zip places launcher icons (kfmon.png, koreader.png, icons/plato.png)
 // at the root; they belong under .adds/kfmon/img/.
+// The .kobo/ subtree (containing KoboRoot.tgz) is skipped — it is handled
+// separately via KFMonKoboRootTgz + MergeKoboRootTgz.
 func kfmonZipRemap(name string) string {
+	// Skip .kobo/ entries; KoboRoot.tgz is merged externally.
+	if name == ".kobo" || name == ".kobo/" || strings.HasPrefix(name, ".kobo/") {
+		return ""
+	}
 	if name == "kfmon.png" || name == "koreader.png" {
 		return ".adds/kfmon/img/" + name
 	}
@@ -78,10 +87,34 @@ func kfmonZipRemap(name string) string {
 		return ".adds/kfmon/img/" + strings.TrimPrefix(name, "icons/")
 	}
 	if name == "icons" {
-		// Bare directory entry — skip, parent dirs are created on demand.
 		return ""
 	}
 	return name
+}
+
+// KFMonKoboRootTgz extracts the .kobo/KoboRoot.tgz payload from the embedded KFMon
+// zip and returns its raw bytes. The caller is responsible for merging it with other
+// KoboRoot payloads via MergeKoboRootTgz before placing on the device.
+func KFMonKoboRootTgz() ([]byte, error) {
+	r, err := zip.NewReader(bytes.NewReader(kfmonZip), int64(len(kfmonZip)))
+	if err != nil {
+		return nil, fmt.Errorf("opening embedded kfmon zip: %w", err)
+	}
+	for _, f := range r.File {
+		if f.Name == ".kobo/KoboRoot.tgz" {
+			rc, err := f.Open()
+			if err != nil {
+				return nil, fmt.Errorf("opening KoboRoot.tgz entry: %w", err)
+			}
+			defer rc.Close()
+			data, err := io.ReadAll(rc)
+			if err != nil {
+				return nil, fmt.Errorf("reading KoboRoot.tgz entry: %w", err)
+			}
+			return data, nil
+		}
+	}
+	return nil, fmt.Errorf("KoboRoot.tgz not found in embedded kfmon zip")
 }
 
 // IsKFMonInstalled returns true if KFMon's config marker exists on the FAT32 partition.

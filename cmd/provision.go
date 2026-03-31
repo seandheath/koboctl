@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/spf13/cobra"
 	"golang.org/x/sync/errgroup"
@@ -101,9 +102,17 @@ Executes all enabled install and configure steps in dependency order:
 				return fmt.Errorf("installing nickelmenu: %w", err)
 			}
 
+			// Merge KoboRoot.tgz payloads from KFMon and NickelMenu into a single
+			// combined archive. Both deliver system-partition installers via this path,
+			// and only one file can exist at .kobo/KoboRoot.tgz.
+			if err := mergeAndPlaceKoboRoot(ctx, di.MountPoint, m, gh); err != nil {
+				return err
+			}
+
 			// Apply security hardening if enabled.
+			// Skip the KoboRoot guard — the merged tgz must be processed on first reboot.
 			if m.Hardening.Enabled {
-				if err := RunHarden(di.MountPoint, m.Hardening, dryRun); err != nil {
+				if err := RunHarden(di.MountPoint, m.Hardening, dryRun, true); err != nil {
 					return fmt.Errorf("hardening: %w", err)
 				}
 			}
@@ -165,6 +174,45 @@ func prefetchArtifacts(ctx context.Context, gh *fetch.GitHubClient, m *manifest.
 	return g.Wait()
 }
 
+// mergeAndPlaceKoboRoot collects KoboRoot.tgz payloads from KFMon and NickelMenu
+// and writes a single merged archive to .kobo/KoboRoot.tgz on the device.
+func mergeAndPlaceKoboRoot(ctx context.Context, mountPoint string, m *manifest.Manifest, gh *fetch.GitHubClient) error {
+	var sources [][]byte
+
+	if m.KFMon.Enabled {
+		kfmonTgz, err := installer.KFMonKoboRootTgz()
+		if err != nil {
+			return fmt.Errorf("extracting kfmon KoboRoot.tgz: %w", err)
+		}
+		sources = append(sources, kfmonTgz)
+	}
+
+	if m.NickelMenu.Enabled {
+		installed, err := installer.IsNickelMenuInstalled(mountPoint)
+		if err != nil {
+			return fmt.Errorf("checking nickelmenu: %w", err)
+		}
+		if !installed {
+			nmTgz, err := installer.FetchNickelMenuTgz(ctx, m.NickelMenu, gh)
+			if err != nil {
+				return fmt.Errorf("fetching nickelmenu KoboRoot.tgz: %w", err)
+			}
+			sources = append(sources, nmTgz)
+		}
+	}
+
+	if len(sources) == 0 {
+		return nil
+	}
+
+	dest := filepath.Join(mountPoint, ".kobo", "KoboRoot.tgz")
+	fmt.Fprintf(os.Stderr, "Merging %d KoboRoot.tgz payload(s)...\n", len(sources))
+	if err := installer.MergeKoboRootTgz(dest, sources...); err != nil {
+		return fmt.Errorf("merging KoboRoot.tgz: %w", err)
+	}
+	return nil
+}
+
 // printPostProvisionInstructions prints next steps for the user after provisioning.
 func printPostProvisionInstructions(hardeningEnabled bool) {
 	fmt.Println()
@@ -175,6 +223,7 @@ func printPostProvisionInstructions(hardeningEnabled bool) {
 	fmt.Println("  4. KOReader can be launched from the NickelMenu or by opening its launcher image")
 	if hardeningEnabled {
 		fmt.Println("  5. Hardening boot scripts will run automatically via KFMon on_boot hook")
-		fmt.Println("  6. Set parental controls PIN: More -> Settings -> Accounts -> Parental Controls")
+		fmt.Println("  6. Run 'koboctl harden' after first reboot to activate KoboRoot guard")
+		fmt.Println("  7. Set parental controls PIN: More -> Settings -> Accounts -> Parental Controls")
 	}
 }

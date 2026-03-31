@@ -221,6 +221,95 @@ func WriteFile(path string, content []byte, perm os.FileMode) error {
 	return nil
 }
 
+// MergeKoboRootTgz merges multiple .tgz byte slices into a single combined archive
+// at destPath. If the same path appears in multiple sources, the last source wins.
+//
+// Both KFMon and NickelMenu deliver their system-partition payloads via
+// .kobo/KoboRoot.tgz, but only one file can exist at that path. This function
+// combines them so both get installed on the next reboot.
+func MergeKoboRootTgz(destPath string, sources ...[]byte) error {
+	if len(sources) == 0 {
+		return nil
+	}
+
+	// Collect all entries, last source wins on duplicates.
+	type entry struct {
+		header *tar.Header
+		data   []byte
+	}
+	seen := make(map[string]int) // name → index in entries
+	var entries []entry
+
+	for i, src := range sources {
+		gr, err := gzip.NewReader(bytes.NewReader(src))
+		if err != nil {
+			return fmt.Errorf("source %d: decompressing: %w", i, err)
+		}
+		tr := tar.NewReader(gr)
+
+		for {
+			hdr, err := tr.Next()
+			if err == io.EOF {
+				break
+			}
+			if err != nil {
+				gr.Close()
+				return fmt.Errorf("source %d: reading tar: %w", i, err)
+			}
+
+			var data []byte
+			if hdr.Typeflag == tar.TypeReg || hdr.Typeflag == tar.TypeRegA {
+				data, err = io.ReadAll(tr)
+				if err != nil {
+					gr.Close()
+					return fmt.Errorf("source %d: reading %q: %w", i, hdr.Name, err)
+				}
+			}
+
+			if idx, ok := seen[hdr.Name]; ok {
+				entries[idx] = entry{header: hdr, data: data}
+			} else {
+				seen[hdr.Name] = len(entries)
+				entries = append(entries, entry{header: hdr, data: data})
+			}
+		}
+		gr.Close()
+	}
+
+	// Write combined archive.
+	if err := os.MkdirAll(filepath.Dir(destPath), 0o755); err != nil {
+		return fmt.Errorf("creating parent dir: %w", err)
+	}
+
+	f, err := os.Create(destPath)
+	if err != nil {
+		return fmt.Errorf("creating %q: %w", destPath, err)
+	}
+	defer f.Close()
+
+	gw := gzip.NewWriter(f)
+	tw := tar.NewWriter(gw)
+
+	for _, e := range entries {
+		if err := tw.WriteHeader(e.header); err != nil {
+			return fmt.Errorf("writing header for %q: %w", e.header.Name, err)
+		}
+		if len(e.data) > 0 {
+			if _, err := tw.Write(e.data); err != nil {
+				return fmt.Errorf("writing %q: %w", e.header.Name, err)
+			}
+		}
+	}
+
+	if err := tw.Close(); err != nil {
+		return fmt.Errorf("closing tar: %w", err)
+	}
+	if err := gw.Close(); err != nil {
+		return fmt.Errorf("closing gzip: %w", err)
+	}
+	return nil
+}
+
 // CheckInstalled returns true if the given path exists on the filesystem.
 func CheckInstalled(path string) (bool, error) {
 	_, err := os.Stat(path)
