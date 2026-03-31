@@ -31,6 +31,7 @@ type hardeningStatusJSON struct {
 	OTADisabled           bool     `json:"ota_disabled"`
 	SyncDisabled          bool     `json:"sync_disabled"`
 	SideloadEnabled       bool     `json:"sideload_enabled"`
+	LibraryExcludeSet     bool     `json:"library_exclude_set"`
 	DangerousPluginsFound []string `json:"dangerous_plugins_found"`
 	ParentalEnabled       bool     `json:"parental_enabled"`
 }
@@ -106,6 +107,7 @@ func newStatusCommand() *cobra.Command {
 						OTADisabled:           hstate.OTADisabled,
 						SyncDisabled:          hstate.SyncDisabled,
 						SideloadEnabled:       hstate.SideloadEnabled,
+						LibraryExcludeSet:     hstate.LibraryExcludeSet,
 						DangerousPluginsFound: hstate.DangerousPluginsFound,
 						ParentalEnabled:       hstate.ParentalEnabled,
 					}
@@ -173,6 +175,7 @@ func printHardeningStatus(s *hardening.HardeningState) {
 	fmt.Printf("  %-26s %s\n", "OTA updates", boolToDisabled(s.OTADisabled))
 	fmt.Printf("  %-26s %s\n", "Cloud sync", boolToDisabled(s.SyncDisabled))
 	fmt.Printf("  %-26s %s\n", "Sideload mode", boolToEnabled(s.SideloadEnabled))
+	fmt.Printf("  %-26s %s\n", "Library exclude folders", check(s.LibraryExcludeSet))
 	if len(s.DangerousPluginsFound) > 0 {
 		fmt.Printf("  %-26s %v\n", "Dangerous plugins", s.DangerousPluginsFound)
 	} else {

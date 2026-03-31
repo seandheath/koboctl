@@ -57,6 +57,7 @@ func TestHardenNickelConfig_AppliesSettings(t *testing.T) {
 		{"AutoSync", "false"},
 		{"EnableDebugServices", "false"},
 		{"EnableWifi", "true"},
+		{"ExcludeSyncFolders", `\.(?!kobo|adobe).*`},
 	}
 	for _, tc := range cases {
 		if !strings.Contains(out, tc.key+"="+tc.want) {

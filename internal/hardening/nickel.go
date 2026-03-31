@@ -32,6 +32,12 @@ var nickelSettings = map[string]map[string]string{
 		// Disable developer debug services (telnet, etc.).
 		"EnableDebugServices": "false",
 	},
+	"Library": {
+		// Exclude dot-prefixed directories (except .kobo and .adobe) from Nickel
+		// library scanning. Prevents KOReader system files (icons, resources) from
+		// appearing as books. Required since firmware 4.17+ scans dot-dirs.
+		"ExcludeSyncFolders": `\.(?!kobo|adobe).*`,
+	},
 }
 
 // HardenNickelConfig applies security settings to .kobo/Kobo/Kobo eReader.conf.

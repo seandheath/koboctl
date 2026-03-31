@@ -25,6 +25,7 @@ type HardeningState struct {
 	OTADisabled           bool
 	SyncDisabled          bool
 	SideloadEnabled       bool
+	LibraryExcludeSet     bool
 	DangerousPluginsFound []string
 	ParentalEnabled       bool
 }
@@ -51,7 +52,7 @@ func HardeningStatus(mountPoint string, cfg manifest.HardeningConfig) HardeningS
 	}
 
 	// Nickel config values.
-	s.OTADisabled, s.SyncDisabled, s.SideloadEnabled = checkNickelConfig(mountPoint)
+	s.OTADisabled, s.SyncDisabled, s.SideloadEnabled, s.LibraryExcludeSet = checkNickelConfig(mountPoint)
 
 	// Dangerous plugin scan.
 	s.DangerousPluginsFound = findDangerousPlugins(mountPoint)
@@ -90,7 +91,7 @@ func checkAnalyticsTrigger(mountPoint string) bool {
 
 // checkNickelConfig reads the Nickel config and returns whether OTA is disabled,
 // sync is disabled, and sideload mode is enabled.
-func checkNickelConfig(mountPoint string) (otaDisabled, syncDisabled, sideloadEnabled bool) {
+func checkNickelConfig(mountPoint string) (otaDisabled, syncDisabled, sideloadEnabled, libraryExcludeSet bool) {
 	confPath := filepath.Join(mountPoint, ".kobo", "Kobo", "Kobo eReader.conf")
 	data, err := os.ReadFile(confPath)
 	if err != nil {
@@ -110,6 +111,8 @@ func checkNickelConfig(mountPoint string) (otaDisabled, syncDisabled, sideloadEn
 				syncDisabled = strings.EqualFold(v, "false")
 			case "sideloadedmode":
 				sideloadEnabled = strings.EqualFold(v, "true")
+			case "excludesyncfolders":
+				libraryExcludeSet = v != ""
 			}
 		}
 	}
