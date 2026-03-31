@@ -202,18 +202,15 @@ func mergeAndPlaceKoboRoot(ctx context.Context, mountPoint string, m *manifest.M
 		sources = append(sources, kfmonTgz)
 	}
 
+	// Always include NickelMenu's tgz if enabled. The FAT32 marker (.adds/nm/)
+	// can survive a factory reset while the ext4 binary is wiped, so we can't
+	// use the idempotency check here. Re-installing is harmless.
 	if m.NickelMenu.Enabled {
-		installed, err := installer.IsNickelMenuInstalled(mountPoint)
+		nmTgz, err := installer.FetchNickelMenuTgz(ctx, m.NickelMenu, gh)
 		if err != nil {
-			return fmt.Errorf("checking nickelmenu: %w", err)
+			return fmt.Errorf("fetching nickelmenu KoboRoot.tgz: %w", err)
 		}
-		if !installed {
-			nmTgz, err := installer.FetchNickelMenuTgz(ctx, m.NickelMenu, gh)
-			if err != nil {
-				return fmt.Errorf("fetching nickelmenu KoboRoot.tgz: %w", err)
-			}
-			sources = append(sources, nmTgz)
-		}
+		sources = append(sources, nmTgz)
 	}
 
 	if len(sources) == 0 {

@@ -45,16 +45,6 @@ func InstallKFMon(ctx context.Context, mountPath string, cfg manifest.KFMonConfi
 		return nil
 	}
 
-	// Check idempotency.
-	installed, err := IsKFMonInstalled(mountPath)
-	if err != nil {
-		return err
-	}
-	if installed {
-		fmt.Fprintf(os.Stderr, "kfmon: already installed, skipping\n")
-		return nil
-	}
-
 	// Extract embedded zip to Kobo root.
 	fmt.Fprintf(os.Stderr, "kfmon: extracting embedded %s...\n", kfmonVersion)
 	if err := ExtractZipBytesWithRemap(kfmonZip, mountPath, kfmonZipRemap); err != nil {

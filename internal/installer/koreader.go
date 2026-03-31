@@ -43,46 +43,37 @@ func InstallKOReader(ctx context.Context, mountPath string, cfg manifest.KOReade
 		return nil
 	}
 
-	// Check idempotency.
-	installed, err := IsKOReaderInstalled(mountPath)
+	// Resolve version and pick the right pattern based on channel.
+	tag, assets, err := resolveVersion(ctx, ghClient, koreaderOwner, koreaderRepo, cfg.Version)
 	if err != nil {
-		return err
-	}
-	if installed {
-		fmt.Fprintf(os.Stderr, "koreader: already installed, skipping\n")
-	} else {
-		// Resolve version and pick the right pattern based on channel.
-		tag, assets, err := resolveVersion(ctx, ghClient, koreaderOwner, koreaderRepo, cfg.Version)
-		if err != nil {
-			return fmt.Errorf("koreader: resolving version: %w", err)
-		}
-
-		// Nightly builds use a slightly different naming scheme; fall back to same
-		// pattern and let FindAsset handle it.
-		_ = cfg.Channel // used implicitly via version resolution
-
-		asset, err := fetch.FindAsset(assets, koreaderPattern)
-		if err != nil {
-			return fmt.Errorf("koreader: finding release asset: %w", err)
-		}
-
-		zipPath, err := ghClient.FetchAsset(ctx, "koreader", tag, asset)
-		if err != nil {
-			return fmt.Errorf("koreader: downloading: %w", err)
-		}
-
-		fmt.Fprintf(os.Stderr, "koreader: extracting %s...\n", filepath.Base(zipPath))
-		if err := ExtractZipWithRemap(zipPath, mountPath, koreaderZipRemap); err != nil {
-			return fmt.Errorf("koreader: extracting: %w", err)
-		}
-
-		if ok, _ := IsKOReaderInstalled(mountPath); !ok {
-			return fmt.Errorf("koreader: installation verification failed: %q not found", koreaderScript)
-		}
-		fmt.Fprintf(os.Stderr, "koreader: installed %s\n", tag)
+		return fmt.Errorf("koreader: resolving version: %w", err)
 	}
 
-	// Write KFMon trigger config (always, even if KOReader was already installed).
+	// Nightly builds use a slightly different naming scheme; fall back to same
+	// pattern and let FindAsset handle it.
+	_ = cfg.Channel // used implicitly via version resolution
+
+	asset, err := fetch.FindAsset(assets, koreaderPattern)
+	if err != nil {
+		return fmt.Errorf("koreader: finding release asset: %w", err)
+	}
+
+	zipPath, err := ghClient.FetchAsset(ctx, "koreader", tag, asset)
+	if err != nil {
+		return fmt.Errorf("koreader: downloading: %w", err)
+	}
+
+	fmt.Fprintf(os.Stderr, "koreader: extracting %s...\n", filepath.Base(zipPath))
+	if err := ExtractZipWithRemap(zipPath, mountPath, koreaderZipRemap); err != nil {
+		return fmt.Errorf("koreader: extracting: %w", err)
+	}
+
+	if ok, _ := IsKOReaderInstalled(mountPath); !ok {
+		return fmt.Errorf("koreader: installation verification failed: %q not found", koreaderScript)
+	}
+	fmt.Fprintf(os.Stderr, "koreader: installed %s\n", tag)
+
+	// Write KFMon trigger config.
 	if err := WriteKFMonKOReaderConfig(mountPath); err != nil {
 		return fmt.Errorf("koreader: writing kfmon config: %w", err)
 	}

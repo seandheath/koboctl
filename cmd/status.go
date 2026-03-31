@@ -76,7 +76,7 @@ func newStatusCommand() *cobra.Command {
 			// Gather component status.
 			components := []componentStatus{
 				checkComponent(di.MountPoint, "KOReader", ".adds/koreader/koreader.sh", koreaderVersion),
-				checkComponent(di.MountPoint, "KFMon", ".adds/kfmon/bin/kfmon", kfmonVersionFn),
+				checkComponent(di.MountPoint, "KFMon", ".adds/kfmon/config/kfmon.ini", kfmonVersionFn),
 				checkComponent(di.MountPoint, "NickelMenu", ".adds/nm", nil),
 			}
 

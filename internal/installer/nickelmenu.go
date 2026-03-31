@@ -35,15 +35,7 @@ func InstallNickelMenu(ctx context.Context, mountPath string, cfg manifest.Nicke
 		return nil
 	}
 
-	installed, err := IsNickelMenuInstalled(mountPath)
-	if err != nil {
-		return err
-	}
-	if installed {
-		fmt.Fprintf(os.Stderr, "nickelmenu: already installed\n")
-	}
-
-	// Write menu config (always — can be written before .adds/nm/ exists;
+	// Write menu config (can be written before .adds/nm/ exists;
 	// NickelMenu reads it at runtime from .adds/nm/config).
 	if len(cfg.Entries) > 0 {
 		if err := config.WriteNickelMenuConfig(mountPath, cfg.Entries); err != nil {
