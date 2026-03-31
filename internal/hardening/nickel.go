@@ -19,6 +19,14 @@ var nickelSettings = map[string]map[string]string{
 	"FeatureSettings": {
 		// Block OTA firmware auto-updates — prevents hardening from being reset.
 		"AutoUpdateEnabled": "false",
+		// Exclude dot-prefixed directories (except .kobo and .adobe) from Nickel
+		// library scanning. Prevents KOReader system files (icons, resources) from
+		// appearing as books. Double backslashes are required because Nickel's INI
+		// parser consumes single backslashes as escape characters.
+		// Pattern from KOReader upstream: two alternations handle top-level dot-dirs
+		// and dot-dirs nested inside non-dot directories.
+		// Ref: https://github.com/koreader/koreader/wiki/Installation-on-Kobo-devices
+		"ExcludeSyncFolders": `(\\.(?!kobo|adobe).+|([^.][^/]*/)+\\..+)`,
 	},
 	"ApplicationPreferences": {
 		// No Kobo account required; enables sideloaded content mode.
@@ -31,12 +39,6 @@ var nickelSettings = map[string]map[string]string{
 		"AutoSync": "false",
 		// Disable developer debug services (telnet, etc.).
 		"EnableDebugServices": "false",
-	},
-	"Library": {
-		// Exclude dot-prefixed directories (except .kobo and .adobe) from Nickel
-		// library scanning. Prevents KOReader system files (icons, resources) from
-		// appearing as books. Required since firmware 4.17+ scans dot-dirs.
-		"ExcludeSyncFolders": `\.(?!kobo|adobe).*`,
 	},
 }
 

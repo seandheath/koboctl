@@ -10,9 +10,8 @@ import "github.com/seandheath/koboctl/internal/manifest"
 var koreaderNMEntry = manifest.NickelMenuEntry{
 	Location: "main",
 	Label:    "KOReader",
-	Action:   "dbg_toast",
-	Arg:      "Starting KOReader...",
-	Chain:    "cmd_spawn:quiet:/usr/bin/kfmon-ipc trigger koreader",
+	Action:   "cmd_spawn",
+	Arg:      "quiet:exec /mnt/onboard/.adds/koreader/koreader.sh",
 }
 
 // cleanBrowsingDNS is the CleanBrowsing Family Filter resolver pair.
