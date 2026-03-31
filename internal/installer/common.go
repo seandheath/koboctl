@@ -28,7 +28,19 @@ func ExtractZip(zipPath, destDir string) error {
 		return fmt.Errorf("opening zip %q: %w", zipPath, err)
 	}
 	defer r.Close()
-	return extractZipReader(&r.Reader, destDir)
+	return extractZipReader(&r.Reader, destDir, nil)
+}
+
+// ExtractZipWithRemap extracts a zip archive to destDir, applying remap to each
+// entry name before computing the destination path. If remap returns "", the entry
+// is skipped.
+func ExtractZipWithRemap(zipPath, destDir string, remap func(string) string) error {
+	r, err := zip.OpenReader(zipPath)
+	if err != nil {
+		return fmt.Errorf("opening zip %q: %w", zipPath, err)
+	}
+	defer r.Close()
+	return extractZipReader(&r.Reader, destDir, remap)
 }
 
 // ExtractZipBytes extracts an in-memory zip to destDir.
@@ -38,15 +50,27 @@ func ExtractZipBytes(data []byte, destDir string) error {
 	if err != nil {
 		return fmt.Errorf("opening zip: %w", err)
 	}
-	return extractZipReader(r, destDir)
+	return extractZipReader(r, destDir, nil)
 }
 
-// extractZipReader is the shared implementation for ExtractZip and ExtractZipBytes.
-func extractZipReader(r *zip.Reader, destDir string) error {
+// extractZipReader is the shared implementation for ExtractZip, ExtractZipBytes,
+// and ExtractZipWithRemap.
+//
+// When remap is non-nil, each zip entry name is transformed before computing the
+// destination path. If remap returns "", the entry is skipped. Zip-slip validation
+// runs after remapping.
+func extractZipReader(r *zip.Reader, destDir string, remap func(string) string) error {
 	destDir = filepath.Clean(destDir)
 
 	for _, f := range r.File {
-		destPath, err := safeJoin(destDir, f.Name)
+		name := f.Name
+		if remap != nil {
+			name = remap(name)
+			if name == "" {
+				continue
+			}
+		}
+		destPath, err := safeJoin(destDir, name)
 		if err != nil {
 			return fmt.Errorf("zip-slip check failed for %q: %w", f.Name, err)
 		}

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/seandheath/koboctl/internal/fetch"
 	"github.com/seandheath/koboctl/internal/manifest"
@@ -71,7 +72,7 @@ func InstallKOReader(ctx context.Context, mountPath string, cfg manifest.KOReade
 		}
 
 		fmt.Fprintf(os.Stderr, "koreader: extracting %s...\n", filepath.Base(zipPath))
-		if err := ExtractZip(zipPath, mountPath); err != nil {
+		if err := ExtractZipWithRemap(zipPath, mountPath, koreaderZipRemap); err != nil {
 			return fmt.Errorf("koreader: extracting: %w", err)
 		}
 
@@ -87,6 +88,19 @@ func InstallKOReader(ctx context.Context, mountPath string, cfg manifest.KOReade
 	}
 
 	return nil
+}
+
+// koreaderZipRemap transforms KOReader zip entry names to their on-device paths.
+// The upstream zip uses "koreader/" as the root prefix, but the Kobo filesystem
+// expects files under ".adds/koreader/". The launch icon goes to the KFMon image dir.
+func koreaderZipRemap(name string) string {
+	if name == "koreader.png" {
+		return ".adds/kfmon/img/koreader.png"
+	}
+	if strings.HasPrefix(name, "koreader/") || name == "koreader" {
+		return ".adds/" + name
+	}
+	return name
 }
 
 // IsKOReaderInstalled returns true if the KOReader launch script exists.

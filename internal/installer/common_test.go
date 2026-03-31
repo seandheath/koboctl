@@ -75,6 +75,53 @@ func TestExtractZip_ZipSlipBlocked(t *testing.T) {
 	}
 }
 
+func TestExtractZipWithRemap(t *testing.T) {
+	dir := t.TempDir()
+	zipPath := filepath.Join(dir, "koreader.zip")
+	createTestZip(t, zipPath, map[string]string{
+		"koreader.png":              "icon-data",
+		"koreader/koreader.sh":      "#!/bin/sh\necho koreader",
+		"koreader/COPYING":          "GPLv3",
+		"koreader/common/module.lua": "-- lua module",
+	})
+
+	destDir := filepath.Join(dir, "kobo")
+	if err := os.MkdirAll(destDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	remap := func(name string) string {
+		if name == "koreader.png" {
+			return ".adds/kfmon/img/koreader.png"
+		}
+		if len(name) >= 9 && name[:9] == "koreader/" {
+			return ".adds/" + name
+		}
+		return name
+	}
+
+	if err := ExtractZipWithRemap(zipPath, destDir, remap); err != nil {
+		t.Fatalf("ExtractZipWithRemap: %v", err)
+	}
+
+	checks := map[string]string{
+		".adds/kfmon/img/koreader.png":        "icon-data",
+		".adds/koreader/koreader.sh":           "#!/bin/sh\necho koreader",
+		".adds/koreader/COPYING":               "GPLv3",
+		".adds/koreader/common/module.lua":     "-- lua module",
+	}
+	for rel, want := range checks {
+		got, err := os.ReadFile(filepath.Join(destDir, rel))
+		if err != nil {
+			t.Errorf("missing %s: %v", rel, err)
+			continue
+		}
+		if string(got) != want {
+			t.Errorf("%s: got %q, want %q", rel, got, want)
+		}
+	}
+}
+
 func TestSafeJoin_Normal(t *testing.T) {
 	base := "/tmp/kobo"
 	result, err := safeJoin(base, ".adds/kfmon/bin/kfmon")
