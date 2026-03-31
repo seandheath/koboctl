@@ -1,0 +1,7 @@
+# Device profile for the Kobo Libra Colour (N428)
+# SoC: MediaTek MT8113T (dual Cortex-A53, armhf)
+# Firmware: Nickel 4.x
+[device]
+model_id     = "N428"
+name         = "Kobo Libra Colour"
+architecture = "arm-kobo-linux-gnueabihf"
