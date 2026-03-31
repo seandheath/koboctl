@@ -40,6 +40,8 @@ security hardening from a declarative TOML manifest.`,
 		newInstallCommand(),
 		newStatusCommand(),
 		newHardenCommand(),
+		newBackupCommand(),
+		newRestoreCommand(),
 	)
 
 	return root
