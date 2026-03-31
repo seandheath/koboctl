@@ -14,9 +14,8 @@ import (
 //
 // Output format per entry:
 //
-//	menu_item :location :label
-//	  chain_success :action :arg
-//	  chain_success :chain-action :chain-arg   (only if Chain is set)
+//	menu_item :location :label :action :arg
+//	chain_success :chain-action :chain-arg   (only if Chain is set)
 //
 // The Chain field encodes "action:arg..." — split on the first colon only,
 // since the arg portion may itself contain colons (e.g., "quiet:/path/to/script").
@@ -26,8 +25,7 @@ func GenerateNickelMenuConfig(entries []manifest.NickelMenuEntry) string {
 		if i > 0 {
 			sb.WriteString("\n")
 		}
-		fmt.Fprintf(&sb, "menu_item :%s :%s\n", e.Location, e.Label)
-		fmt.Fprintf(&sb, "  chain_success :%s :%s\n", e.Action, e.Arg)
+		fmt.Fprintf(&sb, "menu_item :%s :%s :%s :%s\n", e.Location, e.Label, e.Action, e.Arg)
 		if e.Chain != "" {
 			// Split "action:arg..." on the first colon only.
 			parts := strings.SplitN(e.Chain, ":", 2)
@@ -36,7 +34,7 @@ func GenerateNickelMenuConfig(entries []manifest.NickelMenuEntry) string {
 			if len(parts) == 2 {
 				chainArg = parts[1]
 			}
-			fmt.Fprintf(&sb, "  chain_success :%s :%s\n", chainAction, chainArg)
+			fmt.Fprintf(&sb, "chain_success :%s :%s\n", chainAction, chainArg)
 		}
 	}
 	return sb.String()

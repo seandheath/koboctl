@@ -18,7 +18,7 @@ func TestGenerateNickelMenuConfig_SimpleEntry(t *testing.T) {
 		},
 	}
 	got := config.GenerateNickelMenuConfig(entries)
-	want := "menu_item :main :Force WiFi\n  chain_success :nickel_setting :enable:force_wifi\n"
+	want := "menu_item :main :Force WiFi :nickel_setting :enable:force_wifi\n"
 	if got != want {
 		t.Errorf("GenerateNickelMenuConfig:\ngot:\n%s\nwant:\n%s", got, want)
 	}
@@ -36,13 +36,13 @@ func TestGenerateNickelMenuConfig_ChainEntry(t *testing.T) {
 	}
 	got := config.GenerateNickelMenuConfig(entries)
 
-	// Must contain the first chain_success line.
-	if !strings.Contains(got, "chain_success :dbg_toast :Starting KOReader...") {
-		t.Errorf("missing first chain_success line in:\n%s", got)
+	// Must contain the menu_item line with action and arg.
+	if !strings.Contains(got, "menu_item :main :KOReader :dbg_toast :Starting KOReader...") {
+		t.Errorf("missing menu_item line in:\n%s", got)
 	}
-	// Must contain the second chain_success line with the full path (colons in arg preserved).
+	// Must contain the chain_success line with the full path (colons in arg preserved).
 	if !strings.Contains(got, "chain_success :cmd_spawn :quiet:/mnt/onboard/.adds/kfmon/bin/kfmon-ipc.sh trigger koreader") {
-		t.Errorf("missing or mangled second chain_success line in:\n%s", got)
+		t.Errorf("missing or mangled chain_success line in:\n%s", got)
 	}
 }
 
