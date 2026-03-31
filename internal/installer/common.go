@@ -53,6 +53,17 @@ func ExtractZipBytes(data []byte, destDir string) error {
 	return extractZipReader(r, destDir, nil)
 }
 
+// ExtractZipBytesWithRemap extracts an in-memory zip to destDir, applying remap
+// to each entry name before computing the destination path. If remap returns "",
+// the entry is skipped.
+func ExtractZipBytesWithRemap(data []byte, destDir string, remap func(string) string) error {
+	r, err := zip.NewReader(bytes.NewReader(data), int64(len(data)))
+	if err != nil {
+		return fmt.Errorf("opening zip: %w", err)
+	}
+	return extractZipReader(r, destDir, remap)
+}
+
 // extractZipReader is the shared implementation for ExtractZip, ExtractZipBytes,
 // and ExtractZipWithRemap.
 //

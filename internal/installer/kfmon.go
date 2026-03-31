@@ -54,7 +54,7 @@ func InstallKFMon(ctx context.Context, mountPath string, cfg manifest.KFMonConfi
 
 	// Extract embedded zip to Kobo root.
 	fmt.Fprintf(os.Stderr, "kfmon: extracting embedded %s...\n", kfmonVersion)
-	if err := ExtractZipBytes(kfmonZip, mountPath); err != nil {
+	if err := ExtractZipBytesWithRemap(kfmonZip, mountPath, kfmonZipRemap); err != nil {
 		return fmt.Errorf("kfmon: extracting: %w", err)
 	}
 
@@ -65,6 +65,23 @@ func InstallKFMon(ctx context.Context, mountPath string, cfg manifest.KFMonConfi
 
 	fmt.Fprintf(os.Stderr, "kfmon: installed %s\n", kfmonVersion)
 	return nil
+}
+
+// kfmonZipRemap transforms KFMon zip entry names to their on-device paths.
+// The upstream zip places launcher icons (kfmon.png, koreader.png, icons/plato.png)
+// at the root; they belong under .adds/kfmon/img/.
+func kfmonZipRemap(name string) string {
+	if name == "kfmon.png" || name == "koreader.png" {
+		return ".adds/kfmon/img/" + name
+	}
+	if strings.HasPrefix(name, "icons/") {
+		return ".adds/kfmon/img/" + strings.TrimPrefix(name, "icons/")
+	}
+	if name == "icons" {
+		// Bare directory entry — skip, parent dirs are created on demand.
+		return ""
+	}
+	return name
 }
 
 // IsKFMonInstalled returns true if KFMon's config marker exists on the FAT32 partition.
