@@ -124,6 +124,10 @@ func prefetchArtifacts(ctx context.Context, gh *fetch.GitHubClient, m *manifest.
 
 	if m.KFMon.Enabled {
 		g.Go(func() error {
+			if m.KFMon.URL != "" {
+				_, err := gh.FetchURL(ctx, "kfmon", m.KFMon.URL)
+				return err
+			}
 			ver := m.KFMon.Version
 			if ver == "" {
 				ver = "latest"
@@ -151,7 +155,7 @@ func prefetchArtifacts(ctx context.Context, gh *fetch.GitHubClient, m *manifest.
 			if err != nil {
 				return fmt.Errorf("koreader: resolving release: %w", err)
 			}
-			asset, err := fetch.FindAsset(assets, "koreader-kobo-arm-linux-gnueabihf-*.zip")
+			asset, err := fetch.FindAsset(assets, "koreader-kobo-*.zip")
 			if err != nil {
 				return fmt.Errorf("koreader: %w", err)
 			}

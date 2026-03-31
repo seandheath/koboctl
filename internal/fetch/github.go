@@ -125,6 +125,31 @@ func (c *GitHubClient) LatestReleaseOrTag(ctx context.Context, owner, repo, vers
 	return version, assets, nil
 }
 
+// FetchURL downloads an artifact from a direct URL, caching it under component/direct/<filename>.
+// Useful for projects that do not publish GitHub releases (e.g., KFMon via MobileRead).
+// The filename is derived from the URL path; cache key is component/"direct"/filename.
+func (c *GitHubClient) FetchURL(ctx context.Context, component, rawURL string) (string, error) {
+	filename := path.Base(rawURL)
+	cached, err := IsCached(component, "direct", filename)
+	if err != nil {
+		return "", err
+	}
+	destPath, err := CachedPath(component, "direct", filename)
+	if err != nil {
+		return "", err
+	}
+	if cached {
+		return destPath, nil
+	}
+	if _, err := EnsureCacheDir(component, "direct"); err != nil {
+		return "", err
+	}
+	if err := c.DownloadAsset(ctx, rawURL, destPath); err != nil {
+		return "", err
+	}
+	return destPath, nil
+}
+
 // FetchAsset ensures the named artifact is cached locally, downloading it if needed.
 // It returns the local path to the cached file.
 //

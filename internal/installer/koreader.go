@@ -13,7 +13,7 @@ import (
 const (
 	koreaderOwner   = "koreader"
 	koreaderRepo    = "koreader"
-	koreaderPattern = "koreader-kobo-arm-linux-gnueabihf-*.zip"
+	koreaderPattern = "koreader-kobo-*.zip"
 	// koreaderScript confirms KOReader is installed.
 	koreaderScript = ".adds/koreader/koreader.sh"
 )

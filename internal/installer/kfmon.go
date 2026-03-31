@@ -42,21 +42,29 @@ func InstallKFMon(ctx context.Context, mountPath string, cfg manifest.KFMonConfi
 		return nil
 	}
 
-	tag, assets, err := resolveVersion(ctx, ghClient, kfmonOwner, kfmonRepo, cfg.Version)
-	if err != nil {
-		return fmt.Errorf("kfmon: resolving version: %w", err)
-	}
-
-	// Find the zip asset.
-	asset, err := fetch.FindAsset(assets, kfmonPattern)
-	if err != nil {
-		return fmt.Errorf("kfmon: finding release asset: %w", err)
-	}
-
-	// Download (cached).
-	zipPath, err := ghClient.FetchAsset(ctx, "kfmon", tag, asset)
-	if err != nil {
-		return fmt.Errorf("kfmon: downloading: %w", err)
+	var zipPath string
+	if cfg.URL != "" {
+		// Direct URL path: NiLuJe/kfmon has no GitHub releases; binaries are
+		// distributed via MobileRead forum. Use the URL from the manifest directly.
+		var err error
+		zipPath, err = ghClient.FetchURL(ctx, "kfmon", cfg.URL)
+		if err != nil {
+			return fmt.Errorf("kfmon: downloading from url: %w", err)
+		}
+	} else {
+		tag, assets, err := resolveVersion(ctx, ghClient, kfmonOwner, kfmonRepo, cfg.Version)
+		if err != nil {
+			return fmt.Errorf("kfmon: resolving version: %w", err)
+		}
+		asset, err := fetch.FindAsset(assets, kfmonPattern)
+		if err != nil {
+			return fmt.Errorf("kfmon: finding release asset: %w", err)
+		}
+		zipPath, err = ghClient.FetchAsset(ctx, "kfmon", tag, asset)
+		if err != nil {
+			return fmt.Errorf("kfmon: downloading: %w", err)
+		}
+		fmt.Fprintf(os.Stderr, "kfmon: resolved %s\n", tag)
 	}
 
 	// Extract zip to Kobo root.
@@ -70,7 +78,7 @@ func InstallKFMon(ctx context.Context, mountPath string, cfg manifest.KFMonConfi
 		return fmt.Errorf("kfmon: installation verification failed: %q not found after extraction", kfmonBinary)
 	}
 
-	fmt.Fprintf(os.Stderr, "kfmon: installed %s\n", tag)
+	fmt.Fprintf(os.Stderr, "kfmon: installed\n")
 	return nil
 }
 
