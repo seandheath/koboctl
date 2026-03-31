@@ -115,8 +115,17 @@ Executes all enabled install and configure steps in dependency order:
 				return err
 			}
 
+			// Stage a boot script to activate the KoboRoot guard after firmware
+			// processes the merged tgz on first reboot. This replaces the immediate
+			// guard that would block KFMon/NickelMenu installation.
+			if m.Hardening.Enabled && m.Hardening.Filesystem.DisableKoboRoot {
+				if err := hardening.StageKoboRootGuard(di.MountPoint); err != nil {
+					return fmt.Errorf("staging KoboRoot guard boot script: %w", err)
+				}
+			}
+
 			// Apply security hardening if enabled.
-			// Skip the KoboRoot guard — the merged tgz must be processed on first reboot.
+			// Skip the KoboRoot guard — handled by the boot script above.
 			if m.Hardening.Enabled {
 				if err := RunHarden(di.MountPoint, m.Hardening, dryRun, true); err != nil {
 					return fmt.Errorf("hardening: %w", err)
@@ -229,7 +238,7 @@ func printPostProvisionInstructions(hardeningEnabled bool) {
 	fmt.Println("  4. KOReader can be launched from the NickelMenu or by opening its launcher image")
 	if hardeningEnabled {
 		fmt.Println("  5. Hardening boot scripts will run automatically via KFMon on_boot hook")
-		fmt.Println("  6. Run 'koboctl harden' after first reboot to activate KoboRoot guard")
+		fmt.Println("  6. KoboRoot guard will activate automatically after first reboot")
 		fmt.Println("  7. Set parental controls PIN: More -> Settings -> Accounts -> Parental Controls")
 	}
 }
