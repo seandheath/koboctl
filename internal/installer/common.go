@@ -6,12 +6,16 @@ import (
 	"archive/zip"
 	"bytes"
 	"compress/gzip"
+	"context"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
 	"syscall"
+
+	"github.com/google/go-github/v67/github"
+	"github.com/seandheath/koboctl/internal/fetch"
 )
 
 // ExtractZip extracts a zip archive to destDir.
@@ -24,7 +28,21 @@ func ExtractZip(zipPath, destDir string) error {
 		return fmt.Errorf("opening zip %q: %w", zipPath, err)
 	}
 	defer r.Close()
+	return extractZipReader(&r.Reader, destDir)
+}
 
+// ExtractZipBytes extracts an in-memory zip to destDir.
+// Applies the same zip-slip protection as ExtractZip.
+func ExtractZipBytes(data []byte, destDir string) error {
+	r, err := zip.NewReader(bytes.NewReader(data), int64(len(data)))
+	if err != nil {
+		return fmt.Errorf("opening zip: %w", err)
+	}
+	return extractZipReader(r, destDir)
+}
+
+// extractZipReader is the shared implementation for ExtractZip and ExtractZipBytes.
+func extractZipReader(r *zip.Reader, destDir string) error {
 	destDir = filepath.Clean(destDir)
 
 	for _, f := range r.File {
@@ -186,6 +204,19 @@ func CheckDiskSpace(path string) (uint64, error) {
 	}
 	// Bavail is blocks available to unprivileged user.
 	return stat.Bavail * uint64(stat.Bsize), nil
+}
+
+// resolveVersion resolves "latest" to the actual latest release tag, or fetches assets
+// for the specified pinned version. Used by KOReader and NickelMenu installers.
+func resolveVersion(ctx context.Context, gh *fetch.GitHubClient, owner, repo, version string) (string, []*github.ReleaseAsset, error) {
+	if version == "" || version == "latest" {
+		return gh.LatestRelease(ctx, owner, repo)
+	}
+	assets, err := gh.ReleaseByTag(ctx, owner, repo, version)
+	if err != nil {
+		return "", nil, err
+	}
+	return version, assets, nil
 }
 
 // safeJoin joins base and name, returning an error if the result would escape base

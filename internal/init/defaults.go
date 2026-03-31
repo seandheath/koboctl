@@ -36,7 +36,6 @@ func SecureDefaults() manifest.Manifest {
 		},
 		KFMon: manifest.KFMonConfig{
 			Enabled: true,
-			Version: "latest",
 		},
 		NickelMenu: manifest.NickelMenuConfig{
 			Enabled: true,

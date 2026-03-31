@@ -58,15 +58,10 @@ type NickelMenuEntry struct {
 }
 
 // KFMonConfig controls KFMon installation.
-// KFMon is a dependency for KOReader and Plato launch integration.
-//
-// Note: NiLuJe/kfmon does not publish GitHub releases — binaries are distributed
-// via the MobileRead forum thread (https://www.mobileread.com/forums/showthread.php?t=274231).
-// Set URL to a direct download link for the KFMon-*.zip to bypass GitHub resolution.
+// KFMon is embedded in the koboctl binary (GPLv3, https://github.com/NiLuJe/kfmon).
+// KFMon is a dependency for the hardening on_boot hook.
 type KFMonConfig struct {
-	Enabled bool   `toml:"enabled"`
-	Version string `toml:"version"` // "latest" or pinned tag (GitHub releases only)
-	URL     string `toml:"url"`     // direct download URL; if set, bypasses GitHub release API
+	Enabled bool `toml:"enabled"`
 }
 
 // PlatoConfig controls Plato installation (not implemented in phase 1).

@@ -122,28 +122,7 @@ Executes all enabled install and configure steps in dependency order:
 func prefetchArtifacts(ctx context.Context, gh *fetch.GitHubClient, m *manifest.Manifest) error {
 	g, ctx := errgroup.WithContext(ctx)
 
-	if m.KFMon.Enabled {
-		g.Go(func() error {
-			if m.KFMon.URL != "" {
-				_, err := gh.FetchURL(ctx, "kfmon", m.KFMon.URL)
-				return err
-			}
-			ver := m.KFMon.Version
-			if ver == "" {
-				ver = "latest"
-			}
-			tag, assets, err := gh.LatestReleaseOrTag(ctx, "NiLuJe", "kfmon", ver)
-			if err != nil {
-				return fmt.Errorf("kfmon: resolving release: %w", err)
-			}
-			asset, err := fetch.FindAsset(assets, "KFMon-*.zip")
-			if err != nil {
-				return fmt.Errorf("kfmon: %w", err)
-			}
-			_, err = gh.FetchAsset(ctx, "kfmon", tag, asset)
-			return err
-		})
-	}
+	// KFMon is embedded in the binary; no prefetch needed.
 
 	if m.KOReader.Enabled {
 		g.Go(func() error {

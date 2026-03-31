@@ -53,7 +53,7 @@ Components: koreader, nickelmenu, kfmon`,
 
 			switch component {
 			case "kfmon":
-				cfg := manifest.KFMonConfig{Enabled: true, Version: ver}
+				cfg := manifest.KFMonConfig{Enabled: true} // version is embedded
 				return installer.InstallKFMon(ctx, di.MountPoint, cfg, gh)
 
 			case "koreader":

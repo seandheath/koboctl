@@ -119,7 +119,7 @@ func runQuestionFlow(cmd *cobra.Command, p *prompt.Prompter) (manifest.Manifest,
 		// KFMon is a required dependency for KOReader — auto-enable.
 		fmt.Fprintf(out, "  KFMon will be enabled automatically (required by KOReader).\n")
 		m.KFMon.Enabled = true
-		m.KFMon.Version = "latest"
+		// KFMon version is embedded in the binary
 	} else {
 		fmt.Fprintln(out)
 		fmt.Fprintln(out, "[KFMon]")
@@ -129,7 +129,7 @@ func runQuestionFlow(cmd *cobra.Command, p *prompt.Prompter) (manifest.Manifest,
 		}
 		m.KFMon.Enabled = kfmonEnabled
 		if kfmonEnabled {
-			m.KFMon.Version = "latest"
+			// KFMon version is embedded in the binary
 		}
 	}
 	fmt.Fprintln(out)
