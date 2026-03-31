@@ -10,6 +10,7 @@ import (
 	"golang.org/x/sync/errgroup"
 	"github.com/seandheath/koboctl/internal/device"
 	"github.com/seandheath/koboctl/internal/fetch"
+	"github.com/seandheath/koboctl/internal/hardening"
 	"github.com/seandheath/koboctl/internal/installer"
 	"github.com/seandheath/koboctl/internal/manifest"
 )
@@ -100,6 +101,11 @@ Executes all enabled install and configure steps in dependency order:
 			}
 			if err := installer.InstallNickelMenu(ctx, di.MountPoint, m.NickelMenu, gh); err != nil {
 				return fmt.Errorf("installing nickelmenu: %w", err)
+			}
+
+			// Bypass setup wizard so device boots straight to home screen.
+			if err := hardening.BypassSetupWizard(di.MountPoint); err != nil {
+				return fmt.Errorf("bypassing setup wizard: %w", err)
 			}
 
 			// Merge KoboRoot.tgz payloads from KFMon and NickelMenu into a single

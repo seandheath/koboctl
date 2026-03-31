@@ -9,6 +9,57 @@ import (
 	_ "modernc.org/sqlite" // pure-Go SQLite driver; no CGO
 )
 
+// BypassSetupWizard inserts a dummy user record into KoboReader.sqlite so the
+// Kobo firmware skips the initial setup wizard (language, WiFi, account screens).
+//
+// The firmware checks for any record in the `user` table; if one exists, setup is
+// considered complete. A minimal record with UserID="koboctl" is sufficient.
+// The function is idempotent: it skips insertion if any user record already exists.
+func BypassSetupWizard(mountPoint string) error {
+	dbPath := filepath.Join(mountPoint, ".kobo", "KoboReader.sqlite")
+
+	// Database may not exist yet (pre-first-boot). Skip without error.
+	if _, err := os.Stat(dbPath); os.IsNotExist(err) {
+		return nil
+	}
+
+	db, err := sql.Open("sqlite", dbPath)
+	if err != nil {
+		return fmt.Errorf("opening kobo database: %w", err)
+	}
+	defer db.Close()
+
+	// Check if the user table exists (older firmware may differ).
+	var tableCount int
+	if err := db.QueryRow(
+		"SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='user'",
+	).Scan(&tableCount); err != nil {
+		return fmt.Errorf("checking for user table: %w", err)
+	}
+	if tableCount == 0 {
+		return nil // Table absent; firmware will create it on first boot.
+	}
+
+	// Check if a user record already exists.
+	var userCount int
+	if err := db.QueryRow("SELECT COUNT(*) FROM user").Scan(&userCount); err != nil {
+		return fmt.Errorf("checking user table: %w", err)
+	}
+	if userCount > 0 {
+		return nil // Already registered; setup wizard will be skipped.
+	}
+
+	// Insert a minimal dummy user to bypass setup.
+	if _, err := db.Exec(
+		"INSERT INTO user (UserID, UserKey) VALUES ('koboctl', '')",
+	); err != nil {
+		return fmt.Errorf("inserting dummy user: %w", err)
+	}
+
+	fmt.Fprintf(os.Stderr, "setup: inserted dummy user record to bypass setup wizard\n")
+	return nil
+}
+
 // InstallAnalyticsTrigger installs a SQLite trigger in KoboReader.sqlite that
 // automatically deletes any rows inserted into the AnalyticsEvents table.
 //
