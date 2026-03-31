@@ -38,7 +38,7 @@ version = "{{.KOReader.Version}}"
 # ---------------------------------------------------------------------------
 [kfmon]
 enabled = {{.KFMon.Enabled}}
-version = "{{.KFMon.Version}}"
+# Version is embedded in the koboctl binary (not configurable).
 
 # ---------------------------------------------------------------------------
 # NickelMenu — adds a custom menu to Kobo's built-in reader UI (Nickel)

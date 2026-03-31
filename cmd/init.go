@@ -88,6 +88,8 @@ func runQuestionFlow(cmd *cobra.Command, p *prompt.Prompter) (manifest.Manifest,
 
 	// --- Device ---
 	fmt.Fprintln(out, "[Device]")
+	fmt.Fprintf(out, "    Used to select the correct firmware and artifact builds.\n")
+	fmt.Fprintf(out, "    Currently supported: libra-colour. Other models are untested.\n")
 	model, err := p.String("Device model", "libra-colour")
 	if err != nil {
 		return m, err
@@ -97,6 +99,9 @@ func runQuestionFlow(cmd *cobra.Command, p *prompt.Prompter) (manifest.Manifest,
 
 	// --- KOReader ---
 	fmt.Fprintln(out, "[KOReader]")
+	fmt.Fprintf(out, "    Open-source e-book reader supporting EPUB, PDF, DjVu, and more.\n")
+	fmt.Fprintf(out, "    Installed to .adds/koreader/ on the FAT32 partition.\n")
+	fmt.Fprintf(out, "    Automatically enables KFMon (filesystem monitor required to launch it).\n")
 	koreaderEnabled, err := p.Bool("Install KOReader?", true)
 	if err != nil {
 		return m, err
@@ -104,12 +109,15 @@ func runQuestionFlow(cmd *cobra.Command, p *prompt.Prompter) (manifest.Manifest,
 	m.KOReader.Enabled = koreaderEnabled
 
 	if koreaderEnabled {
+		fmt.Fprintf(out, "    \"stable\" tracks official tagged releases.\n")
+		fmt.Fprintf(out, "    \"nightly\" pulls the latest development build (may have bugs).\n")
 		channel, err := p.Choice("Channel", []string{"stable", "nightly"}, "stable")
 		if err != nil {
 			return m, err
 		}
 		m.KOReader.Channel = channel
 
+		fmt.Fprintf(out, "    Use \"latest\" for the newest release, or pin a tag like \"v2024.11\".\n")
 		version, err := p.String("Version (\"latest\" or e.g. v2024.11)", "latest")
 		if err != nil {
 			return m, err
@@ -123,6 +131,9 @@ func runQuestionFlow(cmd *cobra.Command, p *prompt.Prompter) (manifest.Manifest,
 	} else {
 		fmt.Fprintln(out)
 		fmt.Fprintln(out, "[KFMon]")
+		fmt.Fprintf(out, "    KFMon is a filesystem monitor that launches apps from the home screen\n")
+		fmt.Fprintf(out, "    via book cover images. Only needed standalone if you want to run other\n")
+		fmt.Fprintf(out, "    KFMon-compatible apps without KOReader.\n")
 		kfmonEnabled, err := p.Bool("Install KFMon independently?", false)
 		if err != nil {
 			return m, err
@@ -136,6 +147,9 @@ func runQuestionFlow(cmd *cobra.Command, p *prompt.Prompter) (manifest.Manifest,
 
 	// --- NickelMenu ---
 	fmt.Fprintln(out, "[NickelMenu]")
+	fmt.Fprintf(out, "    Injects custom menu entries into the stock Kobo UI (Nickel).\n")
+	fmt.Fprintf(out, "    If KOReader is enabled, a \"KOReader\" launch button is added automatically.\n")
+	fmt.Fprintf(out, "    Installed via KoboRoot.tgz extraction on next device reboot.\n")
 	nmEnabled, err := p.Bool("Install NickelMenu (adds a custom menu to Kobo UI)?", true)
 	if err != nil {
 		return m, err
@@ -152,6 +166,8 @@ func runQuestionFlow(cmd *cobra.Command, p *prompt.Prompter) (manifest.Manifest,
 
 	// --- Plato ---
 	fmt.Fprintln(out, "[Plato]")
+	fmt.Fprintf(out, "    Lightweight alternative document reader (EPUB, PDF, CBZ, DJVU).\n")
+	fmt.Fprintf(out, "    WARNING: Not yet supported by koboctl. This option is a placeholder.\n")
 	platoEnabled, err := p.Bool("Install Plato (alternative reader)?", false)
 	if err != nil {
 		return m, err
@@ -161,6 +177,9 @@ func runQuestionFlow(cmd *cobra.Command, p *prompt.Prompter) (manifest.Manifest,
 
 	// --- Hardening ---
 	fmt.Fprintln(out, "[Hardening]")
+	fmt.Fprintf(out, "    Master toggle for all security hardening options below.\n")
+	fmt.Fprintf(out, "    Covers network restrictions, service disabling, telemetry blocking,\n")
+	fmt.Fprintf(out, "    filesystem guards, and privacy protections. Each can be tuned individually.\n")
 	hardeningEnabled, err := p.Bool("Enable security hardening?", true)
 	if err != nil {
 		return m, err
@@ -168,6 +187,12 @@ func runQuestionFlow(cmd *cobra.Command, p *prompt.Prompter) (manifest.Manifest,
 	m.Hardening.Enabled = hardeningEnabled
 
 	if hardeningEnabled {
+		fmt.Fprintf(out, "    Applies the most restrictive hardening preset:\n")
+		fmt.Fprintf(out, "    - Network mode set to \"offline\" (all outbound traffic blocked)\n")
+		fmt.Fprintf(out, "    - All telemetry, OTA updates, and cloud sync blocked\n")
+		fmt.Fprintf(out, "    - All remote services (telnet, FTP, SSH) disabled\n")
+		fmt.Fprintf(out, "    - KoboRoot guard active, dangerous plugins removed\n")
+		fmt.Fprintf(out, "    Skips all individual hardening questions below.\n")
 		childSafe, err := p.Bool("Use child-safe defaults for all hardening options?", false)
 		if err != nil {
 			return m, err
@@ -188,6 +213,11 @@ func runQuestionFlow(cmd *cobra.Command, p *prompt.Prompter) (manifest.Manifest,
 func promptHardeningConfig(p *prompt.Prompter, out io.Writer, h *manifest.HardeningConfig) error {
 	h.Enabled = true
 
+	fmt.Fprintf(out, "    Controls what network access the device has:\n")
+	fmt.Fprintf(out, "    - metadata-only: WiFi works for book covers and metadata only;\n")
+	fmt.Fprintf(out, "      telemetry/sync blocked via hosts file and DNS filtering.\n")
+	fmt.Fprintf(out, "    - offline: All outbound network traffic blocked. No WiFi.\n")
+	fmt.Fprintf(out, "    - open: No network restrictions applied.\n")
 	mode, err := p.Choice("Network mode", []string{"metadata-only", "offline", "open"}, "metadata-only")
 	if err != nil {
 		return err
@@ -195,6 +225,10 @@ func promptHardeningConfig(p *prompt.Prompter, out io.Writer, h *manifest.Harden
 	h.Network.Mode = mode
 
 	if mode != "offline" {
+		fmt.Fprintf(out, "    Overwrites /etc/resolv.conf and locks it immutable (chattr +i)\n")
+		fmt.Fprintf(out, "    so the DHCP client cannot revert it on WiFi connect.\n")
+		fmt.Fprintf(out, "    Default: CleanBrowsing Family Filter — blocks adult content,\n")
+		fmt.Fprintf(out, "    malware, and phishing at the DNS level.\n")
 		dns, err := p.StringList("DNS servers (comma-separated)", []string{"185.228.168.168", "185.228.169.168"})
 		if err != nil {
 			return err
@@ -202,36 +236,48 @@ func promptHardeningConfig(p *prompt.Prompter, out io.Writer, h *manifest.Harden
 		h.Network.DNSServers = dns
 	}
 
+	fmt.Fprintf(out, "    Installs a SQLite trigger on the AnalyticsEvents table that\n")
+	fmt.Fprintf(out, "    auto-deletes telemetry rows on insert. Also blocked at the\n")
+	fmt.Fprintf(out, "    network level if the hosts-file blocklist is enabled.\n")
 	blockTelemetry, err := p.Bool("Block Kobo telemetry?", true)
 	if err != nil {
 		return err
 	}
 	h.Network.BlockTelemetry = blockTelemetry
 
+	fmt.Fprintf(out, "    Sets AutoUpdateEnabled=false in the Kobo config file.\n")
+	fmt.Fprintf(out, "    Prevents automatic firmware downloads that could reset hardening.\n")
 	blockOTA, err := p.Bool("Block OTA firmware updates?", true)
 	if err != nil {
 		return err
 	}
 	h.Network.BlockOTA = blockOTA
 
+	fmt.Fprintf(out, "    Sets AutoSync=false in the Kobo config file.\n")
+	fmt.Fprintf(out, "    Reading position and bookmarks stay on-device only.\n")
 	blockSync, err := p.Bool("Block cloud sync?", true)
 	if err != nil {
 		return err
 	}
 	h.Network.BlockSync = blockSync
 
+	fmt.Fprintf(out, "    Enables options to lock the Kobo Store and web browser.\n")
+	fmt.Fprintf(out, "    A 4-digit PIN must be set manually on-device after provisioning\n")
+	fmt.Fprintf(out, "    (More -> Settings -> Accounts -> Parental Controls).\n")
 	parentalEnabled, err := p.Bool("Enable parental controls guidance?", true)
 	if err != nil {
 		return err
 	}
 	h.Parental.Enabled = parentalEnabled
 	if parentalEnabled {
+		fmt.Fprintf(out, "    Prevents browsing or purchasing from the Kobo Store without the PIN.\n")
 		lockStore, err := p.Bool("Lock Kobo Store?", true)
 		if err != nil {
 			return err
 		}
 		h.Parental.LockStore = lockStore
 
+		fmt.Fprintf(out, "    Prevents access to the built-in Kobo web browser without the PIN.\n")
 		lockBrowser, err := p.Bool("Lock web browser?", true)
 		if err != nil {
 			return err
@@ -242,42 +288,63 @@ func promptHardeningConfig(p *prompt.Prompter, out io.Writer, h *manifest.Harden
 		fmt.Fprintf(out, "  More -> Settings -> Accounts -> Parental Controls\n")
 	}
 
+	fmt.Fprintf(out, "    Typing \"devmodeon\" in the Kobo search bar enables telnet on port 23\n")
+	fmt.Fprintf(out, "    with root access and no password. This kills telnetd and removes it\n")
+	fmt.Fprintf(out, "    from inetd.conf on each boot.\n")
 	disableTelnet, err := p.Bool("Disable telnet (devmode)?", true)
 	if err != nil {
 		return err
 	}
 	h.Services.DisableTelnet = disableTelnet
 
+	fmt.Fprintf(out, "    Removes the FTP server from inetd.conf, closing file transfer access.\n")
+	fmt.Fprintf(out, "    Books can still be transferred via USB mass storage.\n")
 	disableFTP, err := p.Bool("Disable FTP?", true)
 	if err != nil {
 		return err
 	}
 	h.Services.DisableFTP = disableFTP
 
+	fmt.Fprintf(out, "    Removes SSH from inetd.conf, closing secure shell access.\n")
+	fmt.Fprintf(out, "    WARNING: Once disabled, the only way to get shell access is via\n")
+	fmt.Fprintf(out, "    serial console or re-provisioning with this option turned off.\n")
 	disableSSH, err := p.Bool("Disable SSH?", true)
 	if err != nil {
 		return err
 	}
 	h.Services.DisableSSH = disableSSH
 
+	fmt.Fprintf(out, "    Replaces .kobo/KoboRoot.tgz with a directory of the same name.\n")
+	fmt.Fprintf(out, "    The firmware init script checks \"-f KoboRoot.tgz\" which fails on a\n")
+	fmt.Fprintf(out, "    directory, blocking both rogue and legitimate firmware extraction.\n")
+	fmt.Fprintf(out, "    To apply a firmware update later, remove the guard directory first.\n")
 	guardKoboRoot, err := p.Bool("Guard KoboRoot.tgz (prevents rogue firmware extraction)?", true)
 	if err != nil {
 		return err
 	}
 	h.Filesystem.DisableKoboRoot = guardKoboRoot
 
+	fmt.Fprintf(out, "    Deletes KOReader plugins that expose network services or browsing:\n")
+	fmt.Fprintf(out, "    webbrowser, SSH server, WebDAV file server, and send2ebook receiver.\n")
+	fmt.Fprintf(out, "    Keeps metadata/cover fetching, OPDS catalogs, and Calibre plugins.\n")
 	removePlugins, err := p.Bool("Remove dangerous KOReader plugins (SSH/WebDAV/browser)?", true)
 	if err != nil {
 		return err
 	}
 	h.Filesystem.RemoveDangerousPlugins = removePlugins
 
+	fmt.Fprintf(out, "    Creates a SQLite trigger on the AnalyticsEvents table that deletes\n")
+	fmt.Fprintf(out, "    all rows after any insert. Prevents telemetry accumulation even if\n")
+	fmt.Fprintf(out, "    the hosts-file blocklist is somehow bypassed.\n")
 	blockAnalytics, err := p.Bool("Block analytics database?", true)
 	if err != nil {
 		return err
 	}
 	h.Privacy.BlockAnalyticsDB = blockAnalytics
 
+	fmt.Fprintf(out, "    Appends 14 domains to /etc/hosts pointing to 0.0.0.0, run at boot.\n")
+	fmt.Fprintf(out, "    Blocks: Kobo telemetry/store APIs, Google Analytics, DoubleClick,\n")
+	fmt.Fprintf(out, "    Hotjar behavior tracking, and IP geolocation fingerprinting.\n")
 	hostsBlocklist, err := p.Bool("Enable hosts-file telemetry blocklist?", true)
 	if err != nil {
 		return err
