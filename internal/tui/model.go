@@ -4,7 +4,6 @@
 package tui
 
 import (
-	"os"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/textinput"
@@ -13,6 +12,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	initcmd "github.com/seandheath/koboctl/internal/init"
 	"github.com/seandheath/koboctl/internal/manifest"
+	"github.com/seandheath/koboctl/internal/mstore"
 	"github.com/seandheath/koboctl/internal/plugins"
 )
 
@@ -48,7 +48,8 @@ type model struct {
 	prog    *tea.Program
 	actions Actions
 
-	manifestPath string
+	manifestPath string // where the manifest was loaded from (device or host)
+	hostPath     string // host fallback path (from --manifest)
 	mountPath    string // --mount override ("" = auto)
 
 	m        *manifest.Manifest
@@ -83,20 +84,24 @@ type model struct {
 	confirmFn    func() tea.Cmd
 }
 
-// newModel builds the initial model. manifest is loaded from manifestPath, or
-// SecureDefaults() when the file is absent (first-run).
+// newModel builds the initial model. Device-primary: the manifest is resolved
+// from the connected Kobo's .adds/koboctl/koboctl.toml when present, else the
+// host path, else SecureDefaults() (first-run).
 func newModel(manifestPath, mountPath string, actions Actions) *model {
-	m, err := manifest.LoadManifest(manifestPath)
+	r, err := mstore.Load(manifestPath, mountPath)
 	if err != nil {
 		def := initcmd.SecureDefaults()
-		m = &def
+		r = &mstore.Resolved{Manifest: &def, Path: manifestPath, Device: mstore.Detect(mountPath)}
 	}
+	m := r.Manifest
+
 	ti := textinput.New()
 	ti.Prompt = "› "
 
 	mdl := &model{
 		actions:      actions,
-		manifestPath: manifestPath,
+		manifestPath: r.Path,
+		hostPath:     manifestPath,
 		mountPath:    mountPath,
 		m:            m,
 		original:     *m,
@@ -104,6 +109,7 @@ func newModel(manifestPath, mountPath string, actions Actions) *model {
 		input:        ti,
 		log:          viewport.New(0, 0),
 		pluginChecks: map[string]bool{},
+		status:       deviceStatusMsg{di: r.Device}, // seed the panel; poll fills components
 	}
 	mdl.rebuildTree()
 	return mdl
@@ -519,25 +525,31 @@ func (m *model) openSaveDiff() {
 		return
 	}
 	m.modal = modalDiff
-	m.modalTitle = "Save changes to " + m.manifestPath + "?"
+	m.modalTitle = "Save changes to " + m.saveTarget() + "?"
 	m.modalLines = nil
 	for _, c := range changes {
 		m.modalLines = append(m.modalLines, string(c.kind)+" "+c.text)
 	}
 }
 
-func (m *model) saveManifest() {
-	out, err := initcmd.Render(*m.m)
-	if err != nil {
-		m.showMessage("Render error", []string{err.Error()})
-		return
+// saveTarget is where a Save will write: the connected device (device-primary)
+// or the host fallback path.
+func (m *model) saveTarget() string {
+	if m.status.di != nil {
+		return mstore.DevicePath(m.status.di.MountPoint)
 	}
-	if err := os.WriteFile(m.manifestPath, []byte(out), 0o644); err != nil {
-		m.showMessage("Write error", []string{err.Error()})
+	return m.hostPath
+}
+
+func (m *model) saveManifest() {
+	path, err := mstore.Save(m.m, m.hostPath, m.status.di)
+	if err != nil {
+		m.showMessage("Save error", []string{err.Error()})
 		return
 	}
 	m.original = *m.m
-	m.appendLog("saved " + m.manifestPath)
+	m.manifestPath = path
+	m.appendLog("saved " + path)
 }
 
 func (m *model) View() string {

@@ -5,9 +5,9 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
-	"github.com/seandheath/koboctl/internal/device"
 	"github.com/seandheath/koboctl/internal/hardening"
 	"github.com/seandheath/koboctl/internal/manifest"
+	"github.com/seandheath/koboctl/internal/mstore"
 )
 
 func newHardenCommand() *cobra.Command {
@@ -35,32 +35,21 @@ hook. They take effect after the next reboot.
 
 Also called automatically by 'koboctl provision' when hardening.enabled = true.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			m, err := manifest.LoadManifest(manifestPath)
+			// Device-primary: read config from the connected device when present.
+			r, err := mstore.Load(manifestPath, mountPath)
 			if err != nil {
 				return err
 			}
-			if errs := manifest.ValidateManifest(m); len(errs) > 0 {
+			if errs := manifest.ValidateManifest(r.Manifest); len(errs) > 0 {
 				for _, e := range errs {
 					fmt.Fprintf(os.Stderr, "manifest error: %v\n", e)
 				}
 				return fmt.Errorf("manifest validation failed with %d error(s)", len(errs))
 			}
-
-			mp := mountPath
-			if mp == "" {
-				mp = m.Device.Mount
+			if r.Device == nil {
+				return fmt.Errorf("detecting device: no Kobo connected")
 			}
-			var di *device.DeviceInfo
-			if mp != "" {
-				di, err = device.DetectDevice(mp)
-			} else {
-				di, err = device.AutoDetect()
-			}
-			if err != nil {
-				return fmt.Errorf("detecting device: %w", err)
-			}
-
-			return RunHarden(di.MountPoint, m.Hardening, dryRun, false)
+			return RunHarden(r.Device.MountPoint, r.Manifest.Hardening, dryRun, false)
 		},
 	}
 

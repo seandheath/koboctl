@@ -40,6 +40,16 @@ Running `koboctl` with no arguments on a terminal opens the interactive TUI
 Keys: `↑/↓` move · `space/enter` toggle/edit · `tab` switch pane · `ctrl+r`
 refresh · `q` quit.
 
+### Where the config lives
+
+koboctl is **device-primary**: when a Kobo is connected, the manifest lives on
+the device at `.adds/koboctl/koboctl.toml` and is the source of truth. The host
+`--manifest` file (default `koboctl.toml`) is a fallback used only when no device
+is connected, or when a connected device has no config yet. `init` mirrors the
+generated config onto the device, `provision` persists it there, and the TUI's
+Save writes to the device — so the config travels with the reader and any
+workstation manages the same copy.
+
 Existing subcommands still run headless for scripting:
 
 ```

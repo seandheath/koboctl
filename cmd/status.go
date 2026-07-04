@@ -7,10 +7,9 @@ import (
 	"path/filepath"
 
 	"github.com/spf13/cobra"
-	"github.com/seandheath/koboctl/internal/device"
 	"github.com/seandheath/koboctl/internal/hardening"
 	"github.com/seandheath/koboctl/internal/installer"
-	"github.com/seandheath/koboctl/internal/manifest"
+	"github.com/seandheath/koboctl/internal/mstore"
 )
 
 // componentStatus is the JSON-serialisable status of a single component.
@@ -54,17 +53,9 @@ func newStatusCommand() *cobra.Command {
 		Short: "Report current device state",
 		Long:  `Detect the connected Kobo device and report installed components and configuration.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			mp := mountPath
-			var di *device.DeviceInfo
-			var err error
-
-			if mp != "" {
-				di, err = device.DetectDevice(mp)
-			} else {
-				di, err = device.AutoDetect()
-			}
-			if err != nil {
-				return fmt.Errorf("detecting device: %w", err)
+			di := mstore.Detect(mountPath)
+			if di == nil {
+				return fmt.Errorf("detecting device: no Kobo connected (use --mount to specify the mount point)")
 			}
 
 			modelName := di.Model
@@ -81,10 +72,11 @@ func newStatusCommand() *cobra.Command {
 				checkComponent(di.MountPoint, "NickelMenu", ".adds/nm", nil),
 			}
 
-			// Gather hardening status if a manifest is available.
+			// Gather hardening status if a manifest is available (device-primary:
+			// prefer the device's own config). A missing manifest is not fatal.
 			var hstate *hardening.HardeningState
-			if m, err := manifest.LoadManifest(manifestPath); err == nil && m.Hardening.Enabled {
-				st := hardening.HardeningStatus(di.MountPoint, m.Hardening)
+			if r, err := mstore.Load(manifestPath, mountPath); err == nil && r.Manifest.Hardening.Enabled {
+				st := hardening.HardeningStatus(di.MountPoint, r.Manifest.Hardening)
 				hstate = &st
 			}
 

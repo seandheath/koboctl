@@ -1,5 +1,38 @@
 # koboctl — Decision Log
 
+## 2026-07-04 — Device-primary manifest storage
+
+**Decision:** The manifest is now stored on the device at
+`.adds/koboctl/koboctl.toml` and treated as the source of truth. New package
+`internal/mstore` centralizes resolution: `Load(hostPath, mountPath)` returns the
+device copy when a Kobo is connected and has one, else the host `--manifest`
+path; `Save`/`WriteToDevice` render (via `initcmd.Render`) to the device when
+connected, else to the host. `provision` persists the effective manifest to the
+device at the end; `init` mirrors the generated config to the device; `harden`
+and `status` read device-primary; the TUI resolves at startup and its Save
+targets the device (shown in the save-diff modal).
+
+**Rationale:** The config should travel with the reader so any workstation
+manages the same on-device source of truth, and the device self-describes what it
+was provisioned with. `.adds/koboctl/` already holds koboctl's on-device
+artifacts (hardening scripts, logs, boot hooks), so the manifest sits with them.
+
+**Key choices:**
+- Detection must not depend on `manifest.Device.Mount` (chicken-and-egg: the
+  manifest lives on the device we're locating). `mstore.Detect` uses `--mount` or
+  `AutoDetect` only; `Device.Mount` remains an optional host-side override.
+- `mstore` is its own package (not `internal/manifest`) because writing needs
+  `initcmd.Render`, and `initcmd` imports `manifest` — putting render there would
+  cycle. `mstore` imports manifest + device + initcmd; cmd and tui import mstore.
+- No-device behavior is unchanged (host `--manifest`, default `koboctl.toml`), so
+  existing scripts/CI keep working. `status` still tolerates a missing manifest.
+
+**Alternatives considered:**
+- Host-primary with a device mirror: rejected — user wants the device to be
+  canonical, not a copy.
+- Explicit `config push/pull` subcommands: rejected — device-primary makes sync
+  automatic; no extra verbs needed.
+
 ## 2026-07-04 — Add interactive Bubble Tea TUI
 
 **Decision:** Added an interactive TUI (`internal/tui/`, `cmd/tui.go`). Bare

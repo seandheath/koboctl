@@ -8,6 +8,7 @@ import (
 	"github.com/spf13/cobra"
 	initcmd "github.com/seandheath/koboctl/internal/init"
 	"github.com/seandheath/koboctl/internal/manifest"
+	"github.com/seandheath/koboctl/internal/mstore"
 	"github.com/seandheath/koboctl/internal/prompt"
 )
 
@@ -65,7 +66,17 @@ Flags:
 				return fmt.Errorf("writing %q: %w", output, err)
 			}
 			fmt.Fprintf(cmd.OutOrStdout(), "Wrote %s\n", output)
-			fmt.Fprintf(cmd.OutOrStdout(), "Next: koboctl provision --manifest %s\n", output)
+
+			// Device-primary: if a Kobo is connected, also store the manifest on
+			// the device so it becomes the source of truth going forward.
+			if di := mstore.Detect(mountPath); di != nil {
+				if dp, err := mstore.WriteToDevice(di.MountPoint, &m); err != nil {
+					fmt.Fprintf(os.Stderr, "warning: could not store manifest on device: %v\n", err)
+				} else {
+					fmt.Fprintf(cmd.OutOrStdout(), "Stored on device: %s\n", dp)
+				}
+			}
+			fmt.Fprintf(cmd.OutOrStdout(), "Next: koboctl provision\n")
 			return nil
 		},
 	}

@@ -13,6 +13,7 @@ import (
 	"github.com/seandheath/koboctl/internal/hardening"
 	"github.com/seandheath/koboctl/internal/installer"
 	"github.com/seandheath/koboctl/internal/manifest"
+	"github.com/seandheath/koboctl/internal/mstore"
 	"github.com/seandheath/koboctl/internal/plugins"
 )
 
@@ -32,18 +33,19 @@ Executes all enabled install and configure steps in dependency order:
   5. Install NickelMenu
   6. Apply security hardening (if hardening.enabled = true)`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			// Load and validate manifest.
-			m, err := manifest.LoadManifest(manifestPath)
+			// Device-primary: load from the connected device if it has a config,
+			// otherwise from the host manifest path.
+			r, err := mstore.Load(manifestPath, mountPath)
 			if err != nil {
 				return err
 			}
-			if errs := manifest.ValidateManifest(m); len(errs) > 0 {
+			if errs := manifest.ValidateManifest(r.Manifest); len(errs) > 0 {
 				for _, e := range errs {
 					fmt.Fprintf(os.Stderr, "manifest error: %v\n", e)
 				}
 				return fmt.Errorf("manifest validation failed with %d error(s)", len(errs))
 			}
-			return RunProvision(mountPath, m, dryRun)
+			return RunProvision(mountPath, r.Manifest, dryRun)
 		},
 	}
 
@@ -155,6 +157,14 @@ func RunProvision(mountPath string, m *manifest.Manifest, dryRun bool) error {
 		if err := RunHarden(di.MountPoint, m.Hardening, dryRun, true); err != nil {
 			return fmt.Errorf("hardening: %w", err)
 		}
+	}
+
+	// Persist the effective manifest onto the device so the config travels with
+	// it (device-primary). Migrates a host-only config onto a fresh device.
+	if dp, err := mstore.WriteToDevice(di.MountPoint, m); err != nil {
+		fmt.Fprintf(os.Stderr, "warning: could not store manifest on device: %v\n", err)
+	} else {
+		fmt.Printf("Stored manifest at %s\n", dp)
 	}
 
 	printPostProvisionInstructions(m.Hardening.Enabled)

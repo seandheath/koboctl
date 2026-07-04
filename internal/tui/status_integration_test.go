@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	initcmd "github.com/seandheath/koboctl/internal/init"
+	"github.com/seandheath/koboctl/internal/mstore"
 )
 
 // mockKobo builds a fake mounted Kobo FAT32 root with a version file and the
@@ -99,5 +100,42 @@ func TestModel_SaveWritesManifest(t *testing.T) {
 	}
 	if !strings.Contains(string(reloaded), `version = "v2024.11"`) {
 		t.Errorf("saved manifest missing edited version:\n%s", reloaded)
+	}
+}
+
+func TestModel_DevicePrimaryLoadAndSave(t *testing.T) {
+	mount := mockKobo(t, true, true, false)
+
+	// Seed a device manifest distinct from defaults.
+	seed := initcmd.SecureDefaults()
+	seed.KOReader.Version = "v2024.11"
+	if _, err := mstore.WriteToDevice(mount, &seed); err != nil {
+		t.Fatal(err)
+	}
+
+	// newModel with an (empty) host path + explicit mount → device-primary.
+	m := newModel(filepath.Join(t.TempDir(), "host.toml"), mount, Actions{})
+	if m.status.di == nil {
+		t.Fatal("device not seeded into model")
+	}
+	if m.m.KOReader.Version != "v2024.11" {
+		t.Errorf("did not load device copy: version=%q", m.m.KOReader.Version)
+	}
+	if m.manifestPath != mstore.DevicePath(mount) {
+		t.Errorf("manifestPath = %q, want device path", m.manifestPath)
+	}
+	if m.saveTarget() != mstore.DevicePath(mount) {
+		t.Errorf("saveTarget = %q, want device path", m.saveTarget())
+	}
+
+	// Edit + save → writes back to the device copy.
+	m.m.KOReader.Version = "v2025.02"
+	m.saveManifest()
+	r, err := mstore.Load("", mount)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r.Manifest.KOReader.Version != "v2025.02" {
+		t.Errorf("save did not persist to device: version=%q", r.Manifest.KOReader.Version)
 	}
 }
