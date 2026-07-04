@@ -7,6 +7,7 @@ import (
 	"regexp"
 
 	"github.com/pelletier/go-toml/v2"
+	"github.com/seandheath/koboctl/internal/plugins"
 )
 
 // semverLoose matches version strings like "v2024.11" or "v1.4.2".
@@ -46,6 +47,18 @@ func ValidateManifest(m *Manifest) []error {
 		ver := m.KOReader.Version
 		if ver != "" && ver != "latest" && !semverLoose.MatchString(ver) {
 			add(fmt.Errorf("koreader.version must be \"latest\" or a version tag (e.g., v2024.11), got %q", ver))
+		}
+
+		// Validate KOReader plugins against the built-in registry.
+		for i, entry := range m.KOReader.Plugins {
+			name, pver := plugins.Parse(entry)
+			if _, ok := plugins.Lookup(name); !ok {
+				add(fmt.Errorf("koreader.plugins[%d]: unknown plugin %q (known: %v)", i, name, plugins.Names()))
+				continue
+			}
+			if pver != "" && pver != "latest" && !semverLoose.MatchString(pver) {
+				add(fmt.Errorf("koreader.plugins[%d]: version must be \"latest\" or a version tag (e.g., v1.7.0), got %q", i, pver))
+			}
 		}
 	}
 

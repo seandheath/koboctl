@@ -1,5 +1,33 @@
 # koboctl — Decision Log
 
+## 2026-07-04 — Add KOReader plugin support (dynamic_panelzoom)
+
+**Decision:** Added a declarative KOReader plugin installer. `[koreader].plugins`
+takes a list of names (`"name"` or `"name@vX.Y.Z"`) resolved against a built-in
+registry (`internal/plugins`). Plugins are fetched from GitHub releases and
+extracted into `.adds/koreader/plugins/<name>.koplugin/` after KOReader is
+installed. Seeded the registry with `dynamic_panelzoom`
+(JorgeTheFox/koreader-dynamic-panelzoom) and enabled it in `koboctl.toml`.
+
+**Rationale:** The target reader reads comics/manga; dynamic_panelzoom adds
+panel-by-panel navigation. The plugin publishes proper GitHub releases with a
+stable `dynamic_panelzoom.koplugin.zip` asset, so it reuses the existing fetch
+path (KOReader/NickelMenu) unchanged. The registry lives in its own
+dependency-free package so both the manifest validator and installer can use it
+without an import cycle (installer already imports manifest). dynamic_panelzoom
+is not in `DangerousPlugins()`, so hardening's plugin removal leaves it intact.
+
+**Alternatives considered:**
+- Embed the zip in the binary (like KFMon): rejected — KFMon is embedded only
+  because it has no GitHub releases; embedding here means re-vendoring on every
+  update for no offline benefit (provision already needs network).
+- Generic `[[koreader.plugins]]` table with repo/asset/version fields: rejected
+  for now — pushes asset-glob/remap correctness onto hand-edited TOML; the named
+  registry keeps those details in tested Go. Revisit if self-service is wanted.
+
+<!-- TODO:FEATURE — plugin uninstall/GC: prune .adds/koreader/plugins entries no
+     longer listed in the manifest. -->
+
 ## 2026-03-31 — Add hardening module, remove Tailscale/SSH/OPDS/Calibre
 
 **Decision:** Added `internal/hardening/` package implementing security hardening for a child-safe Kobo device. Removed Tailscale, SSH, OPDS catalog, and Calibre wireless sync from scope and manifest types.

@@ -62,7 +62,14 @@ Components: koreader, nickelmenu, kfmon`,
 					Version: ver,
 					Channel: channel,
 				}
-				return installer.InstallKOReader(ctx, di.MountPoint, cfg, gh)
+				// If a manifest is present, install its configured plugins too.
+				if m, err := manifest.LoadManifest(manifestPath); err == nil {
+					cfg.Plugins = m.KOReader.Plugins
+				}
+				if err := installer.InstallKOReader(ctx, di.MountPoint, cfg, gh); err != nil {
+					return err
+				}
+				return installer.InstallKOReaderPlugins(ctx, di.MountPoint, cfg, gh)
 
 			case "nickelmenu":
 				cfg := manifest.NickelMenuConfig{Enabled: true, Version: ver}

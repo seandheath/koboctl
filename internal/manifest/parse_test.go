@@ -164,6 +164,45 @@ func TestValidateManifest_Valid(t *testing.T) {
 	}
 }
 
+func TestValidateManifest_UnknownPlugin(t *testing.T) {
+	m := &manifest.Manifest{}
+	m.KOReader.Enabled = true
+	m.KOReader.Channel = "stable"
+	m.KFMon.Enabled = true
+	m.KOReader.Plugins = []string{"not_a_real_plugin"}
+
+	errs := manifest.ValidateManifest(m)
+	if len(errs) == 0 {
+		t.Error("expected validation error for unknown plugin name")
+	}
+}
+
+func TestValidateManifest_PluginBadVersion(t *testing.T) {
+	m := &manifest.Manifest{}
+	m.KOReader.Enabled = true
+	m.KOReader.Channel = "stable"
+	m.KFMon.Enabled = true
+	m.KOReader.Plugins = []string{"dynamic_panelzoom@notaversion"}
+
+	errs := manifest.ValidateManifest(m)
+	if len(errs) == 0 {
+		t.Error("expected validation error for invalid plugin version pin")
+	}
+}
+
+func TestValidateManifest_PluginValid(t *testing.T) {
+	m := &manifest.Manifest{}
+	m.KOReader.Enabled = true
+	m.KOReader.Channel = "stable"
+	m.KFMon.Enabled = true
+	m.KOReader.Plugins = []string{"dynamic_panelzoom", "dynamic_panelzoom@v1.7.0"}
+
+	errs := manifest.ValidateManifest(m)
+	if len(errs) != 0 {
+		t.Errorf("unexpected validation errors for valid plugins: %v", errs)
+	}
+}
+
 func TestValidateManifest_InvalidHardeningMode(t *testing.T) {
 	m := &manifest.Manifest{}
 	m.Hardening.Enabled = true
