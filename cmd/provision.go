@@ -43,109 +43,122 @@ Executes all enabled install and configure steps in dependency order:
 				}
 				return fmt.Errorf("manifest validation failed with %d error(s)", len(errs))
 			}
-
-			// Detect device.
-			mp := mountPath
-			if mp == "" {
-				mp = m.Device.Mount
-			}
-			var di *device.DeviceInfo
-			if mp != "" {
-				di, err = device.DetectDevice(mp)
-			} else {
-				di, err = device.AutoDetect()
-			}
-			if err != nil {
-				return fmt.Errorf("detecting device: %w", err)
-			}
-
-			if di.Profile == nil && di.Model != "" {
-				fmt.Fprintf(os.Stderr, "warning: device model %q is not in the profile database — proceeding anyway\n", di.Model)
-			}
-
-			fmt.Printf("Device:   %s\n", di.Model)
-			fmt.Printf("Firmware: %s\n", di.FirmwareVersion)
-			fmt.Printf("Mount:    %s\n", di.MountPoint)
-			fmt.Println()
-
-			if dryRun {
-				fmt.Println("[dry-run] would fetch and install the following components:")
-				if m.KFMon.Enabled {
-					fmt.Println("  - kfmon")
-				}
-				if m.KOReader.Enabled {
-					fmt.Println("  - koreader")
-					for _, p := range m.KOReader.Plugins {
-						fmt.Printf("      - plugin: %s\n", p)
-					}
-				}
-				if m.NickelMenu.Enabled {
-					fmt.Println("  - nickelmenu")
-				}
-				if m.Hardening.Enabled {
-					fmt.Println("  - hardening")
-				}
-				return nil
-			}
-
-			ctx := context.Background()
-			gh := fetch.NewGitHubClient()
-
-			// Pre-fetch all artifacts in parallel before installing.
-			if err := prefetchArtifacts(ctx, gh, m); err != nil {
-				return fmt.Errorf("pre-fetching artifacts: %w", err)
-			}
-
-			// Install in dependency order: KFMon → KOReader → NickelMenu.
-			if err := installer.InstallKFMon(ctx, di.MountPoint, m.KFMon, gh); err != nil {
-				return fmt.Errorf("installing kfmon: %w", err)
-			}
-			if err := installer.InstallKOReader(ctx, di.MountPoint, m.KOReader, gh); err != nil {
-				return fmt.Errorf("installing koreader: %w", err)
-			}
-			if err := installer.InstallKOReaderPlugins(ctx, di.MountPoint, m.KOReader, gh); err != nil {
-				return fmt.Errorf("installing koreader plugins: %w", err)
-			}
-			if err := installer.InstallNickelMenu(ctx, di.MountPoint, m.NickelMenu, gh); err != nil {
-				return fmt.Errorf("installing nickelmenu: %w", err)
-			}
-
-			// Bypass setup wizard so device boots straight to home screen.
-			if err := hardening.BypassSetupWizard(di.MountPoint); err != nil {
-				return fmt.Errorf("bypassing setup wizard: %w", err)
-			}
-
-			// Merge KoboRoot.tgz payloads from KFMon and NickelMenu into a single
-			// combined archive. Both deliver system-partition installers via this path,
-			// and only one file can exist at .kobo/KoboRoot.tgz.
-			if err := mergeAndPlaceKoboRoot(ctx, di.MountPoint, m, gh); err != nil {
-				return err
-			}
-
-			// Stage a boot script to activate the KoboRoot guard after firmware
-			// processes the merged tgz on first reboot. This replaces the immediate
-			// guard that would block KFMon/NickelMenu installation.
-			if m.Hardening.Enabled && m.Hardening.Filesystem.DisableKoboRoot {
-				if err := hardening.StageKoboRootGuard(di.MountPoint); err != nil {
-					return fmt.Errorf("staging KoboRoot guard boot script: %w", err)
-				}
-			}
-
-			// Apply security hardening if enabled.
-			// Skip the KoboRoot guard — handled by the boot script above.
-			if m.Hardening.Enabled {
-				if err := RunHarden(di.MountPoint, m.Hardening, dryRun, true); err != nil {
-					return fmt.Errorf("hardening: %w", err)
-				}
-			}
-
-			printPostProvisionInstructions(m.Hardening.Enabled)
-			return nil
+			return RunProvision(mountPath, m, dryRun)
 		},
 	}
 
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "print what would be done without making changes")
 	return cmd
+}
+
+// RunProvision executes the full provisioning workflow against a connected Kobo:
+// detect device, pre-fetch artifacts, install KFMon/KOReader/plugins/NickelMenu,
+// bypass the setup wizard, merge the KoboRoot payloads, and apply hardening.
+//
+// The manifest must already be validated. mountPath overrides auto-detection
+// (falling back to m.Device.Mount, then AutoDetect). When dryRun is true it only
+// prints the planned actions. Progress is written to stdout/stderr, which the TUI
+// captures for its live log. Exported so both the cobra command and the TUI can
+// drive the same orchestration.
+func RunProvision(mountPath string, m *manifest.Manifest, dryRun bool) error {
+	// Detect device.
+	mp := mountPath
+	if mp == "" {
+		mp = m.Device.Mount
+	}
+	var di *device.DeviceInfo
+	var err error
+	if mp != "" {
+		di, err = device.DetectDevice(mp)
+	} else {
+		di, err = device.AutoDetect()
+	}
+	if err != nil {
+		return fmt.Errorf("detecting device: %w", err)
+	}
+
+	if di.Profile == nil && di.Model != "" {
+		fmt.Fprintf(os.Stderr, "warning: device model %q is not in the profile database — proceeding anyway\n", di.Model)
+	}
+
+	fmt.Printf("Device:   %s\n", di.Model)
+	fmt.Printf("Firmware: %s\n", di.FirmwareVersion)
+	fmt.Printf("Mount:    %s\n", di.MountPoint)
+	fmt.Println()
+
+	if dryRun {
+		fmt.Println("[dry-run] would fetch and install the following components:")
+		if m.KFMon.Enabled {
+			fmt.Println("  - kfmon")
+		}
+		if m.KOReader.Enabled {
+			fmt.Println("  - koreader")
+			for _, p := range m.KOReader.Plugins {
+				fmt.Printf("      - plugin: %s\n", p)
+			}
+		}
+		if m.NickelMenu.Enabled {
+			fmt.Println("  - nickelmenu")
+		}
+		if m.Hardening.Enabled {
+			fmt.Println("  - hardening")
+		}
+		return nil
+	}
+
+	ctx := context.Background()
+	gh := fetch.NewGitHubClient()
+
+	// Pre-fetch all artifacts in parallel before installing.
+	if err := prefetchArtifacts(ctx, gh, m); err != nil {
+		return fmt.Errorf("pre-fetching artifacts: %w", err)
+	}
+
+	// Install in dependency order: KFMon → KOReader → NickelMenu.
+	if err := installer.InstallKFMon(ctx, di.MountPoint, m.KFMon, gh); err != nil {
+		return fmt.Errorf("installing kfmon: %w", err)
+	}
+	if err := installer.InstallKOReader(ctx, di.MountPoint, m.KOReader, gh); err != nil {
+		return fmt.Errorf("installing koreader: %w", err)
+	}
+	if err := installer.InstallKOReaderPlugins(ctx, di.MountPoint, m.KOReader, gh); err != nil {
+		return fmt.Errorf("installing koreader plugins: %w", err)
+	}
+	if err := installer.InstallNickelMenu(ctx, di.MountPoint, m.NickelMenu, gh); err != nil {
+		return fmt.Errorf("installing nickelmenu: %w", err)
+	}
+
+	// Bypass setup wizard so device boots straight to home screen.
+	if err := hardening.BypassSetupWizard(di.MountPoint); err != nil {
+		return fmt.Errorf("bypassing setup wizard: %w", err)
+	}
+
+	// Merge KoboRoot.tgz payloads from KFMon and NickelMenu into a single
+	// combined archive. Both deliver system-partition installers via this path,
+	// and only one file can exist at .kobo/KoboRoot.tgz.
+	if err := mergeAndPlaceKoboRoot(ctx, di.MountPoint, m, gh); err != nil {
+		return err
+	}
+
+	// Stage a boot script to activate the KoboRoot guard after firmware
+	// processes the merged tgz on first reboot. This replaces the immediate
+	// guard that would block KFMon/NickelMenu installation.
+	if m.Hardening.Enabled && m.Hardening.Filesystem.DisableKoboRoot {
+		if err := hardening.StageKoboRootGuard(di.MountPoint); err != nil {
+			return fmt.Errorf("staging KoboRoot guard boot script: %w", err)
+		}
+	}
+
+	// Apply security hardening if enabled.
+	// Skip the KoboRoot guard — handled by the boot script above.
+	if m.Hardening.Enabled {
+		if err := RunHarden(di.MountPoint, m.Hardening, dryRun, true); err != nil {
+			return fmt.Errorf("hardening: %w", err)
+		}
+	}
+
+	printPostProvisionInstructions(m.Hardening.Enabled)
+	return nil
 }
 
 // prefetchArtifacts downloads all required artifacts in parallel.

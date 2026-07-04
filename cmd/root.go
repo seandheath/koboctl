@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/mattn/go-isatty"
 	"github.com/spf13/cobra"
 )
 
@@ -27,6 +28,15 @@ It automates installation of KOReader, KFMon, NickelMenu, and Plato, and applies
 security hardening from a declarative TOML manifest.`,
 		SilenceErrors: true,
 		SilenceUsage:  true,
+		// Bare `koboctl` on a TTY launches the interactive TUI; otherwise (piped,
+		// scripted, or with unexpected args) it prints help so scripting is
+		// unaffected. Real subcommands are dispatched before this RunE.
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if len(args) == 0 && isatty.IsTerminal(os.Stdout.Fd()) {
+				return runTUI()
+			}
+			return cmd.Help()
+		},
 	}
 
 	root.PersistentFlags().StringVar(&manifestPath, "manifest", "koboctl.toml",
@@ -42,6 +52,7 @@ security hardening from a declarative TOML manifest.`,
 		newHardenCommand(),
 		newBackupCommand(),
 		newRestoreCommand(),
+		newTUICommand(),
 	)
 
 	return root
