@@ -13,6 +13,7 @@ import (
 	"github.com/seandheath/koboctl/internal/hardening"
 	"github.com/seandheath/koboctl/internal/installer"
 	"github.com/seandheath/koboctl/internal/manifest"
+	"github.com/seandheath/koboctl/internal/plugins"
 )
 
 func newProvisionCommand() *cobra.Command {
@@ -74,6 +75,9 @@ Executes all enabled install and configure steps in dependency order:
 				}
 				if m.KOReader.Enabled {
 					fmt.Println("  - koreader")
+					for _, p := range m.KOReader.Plugins {
+						fmt.Printf("      - plugin: %s\n", p)
+					}
 				}
 				if m.NickelMenu.Enabled {
 					fmt.Println("  - nickelmenu")
@@ -98,6 +102,9 @@ Executes all enabled install and configure steps in dependency order:
 			}
 			if err := installer.InstallKOReader(ctx, di.MountPoint, m.KOReader, gh); err != nil {
 				return fmt.Errorf("installing koreader: %w", err)
+			}
+			if err := installer.InstallKOReaderPlugins(ctx, di.MountPoint, m.KOReader, gh); err != nil {
+				return fmt.Errorf("installing koreader plugins: %w", err)
 			}
 			if err := installer.InstallNickelMenu(ctx, di.MountPoint, m.NickelMenu, gh); err != nil {
 				return fmt.Errorf("installing nickelmenu: %w", err)
@@ -165,6 +172,28 @@ func prefetchArtifacts(ctx context.Context, gh *fetch.GitHubClient, m *manifest.
 			_, err = gh.FetchAsset(ctx, "koreader", tag, asset)
 			return err
 		})
+
+		// Warm the cache for each configured KOReader plugin.
+		for _, entry := range m.KOReader.Plugins {
+			entry := entry
+			g.Go(func() error {
+				name, ver := plugins.Parse(entry)
+				src, ok := plugins.Lookup(name)
+				if !ok {
+					return fmt.Errorf("plugin %s: unknown plugin", name)
+				}
+				tag, assets, err := gh.LatestReleaseOrTag(ctx, src.Owner, src.Repo, ver)
+				if err != nil {
+					return fmt.Errorf("plugin %s: resolving release: %w", name, err)
+				}
+				asset, err := fetch.FindAsset(assets, src.AssetPattern)
+				if err != nil {
+					return fmt.Errorf("plugin %s: %w", name, err)
+				}
+				_, err = gh.FetchAsset(ctx, "plugin-"+name, tag, asset)
+				return err
+			})
+		}
 	}
 
 	if m.NickelMenu.Enabled {

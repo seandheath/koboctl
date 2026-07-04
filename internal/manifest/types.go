@@ -26,6 +26,10 @@ type KOReaderConfig struct {
 	Channel string `toml:"channel"`
 	// Version is a pinned release tag (e.g., "v2024.11") or "latest".
 	Version string `toml:"version"`
+	// Plugins is a list of KOReader plugins to install by registry name.
+	// Each entry is "name" (latest) or "name@vX.Y.Z" to pin a version.
+	// See the plugin registry in internal/installer/plugins.go.
+	Plugins []string `toml:"plugins"`
 }
 
 // NickelMenuConfig controls NickelMenu installation and menu entries.
