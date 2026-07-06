@@ -47,22 +47,26 @@ func TestBuildTree_BoolToggleMutatesManifest(t *testing.T) {
 func TestBuildTree_EnumCycle(t *testing.T) {
 	m := initcmd.SecureDefaults()
 	roots := buildTree(&m)
-	ch := findField(roots, "channel")
-	if ch == nil || ch.kind != kindEnum {
-		t.Fatal("channel enum not found")
+	mode := findField(roots, "mode")
+	if mode == nil || mode.kind != kindEnum {
+		t.Fatal("network mode enum not found")
 	}
-	m.KOReader.Channel = "stable"
-	ch.cycle(1)
-	if m.KOReader.Channel != "nightly" {
-		t.Errorf("cycle: got %q want nightly", m.KOReader.Channel)
+	m.Hardening.Network.Mode = "metadata-only"
+	mode.cycle(1)
+	if m.Hardening.Network.Mode != "offline" {
+		t.Errorf("cycle: got %q want offline", m.Hardening.Network.Mode)
 	}
-	ch.cycle(1)
-	if m.KOReader.Channel != "stable" {
-		t.Errorf("cycle wrap: got %q want stable", m.KOReader.Channel)
+	mode.cycle(1)
+	if m.Hardening.Network.Mode != "open" {
+		t.Errorf("cycle: got %q want open", m.Hardening.Network.Mode)
 	}
-	ch.cycle(-1)
-	if m.KOReader.Channel != "nightly" {
-		t.Errorf("cycle back: got %q want nightly", m.KOReader.Channel)
+	mode.cycle(1)
+	if m.Hardening.Network.Mode != "metadata-only" {
+		t.Errorf("cycle wrap: got %q want metadata-only", m.Hardening.Network.Mode)
+	}
+	mode.cycle(-1)
+	if m.Hardening.Network.Mode != "open" {
+		t.Errorf("cycle back: got %q want open", m.Hardening.Network.Mode)
 	}
 }
 

@@ -120,14 +120,6 @@ func runQuestionFlow(cmd *cobra.Command, p *prompt.Prompter) (manifest.Manifest,
 	m.KOReader.Enabled = koreaderEnabled
 
 	if koreaderEnabled {
-		fmt.Fprintf(out, "    \"stable\" tracks official tagged releases.\n")
-		fmt.Fprintf(out, "    \"nightly\" pulls the latest development build (may have bugs).\n")
-		channel, err := p.Choice("Channel", []string{"stable", "nightly"}, "stable")
-		if err != nil {
-			return m, err
-		}
-		m.KOReader.Channel = channel
-
 		fmt.Fprintf(out, "    Use \"latest\" for the newest release, or pin a tag like \"v2024.11\".\n")
 		version, err := p.String("Version (\"latest\" or e.g. v2024.11)", "latest")
 		if err != nil {
@@ -256,48 +248,13 @@ func promptHardeningConfig(p *prompt.Prompter, out io.Writer, h *manifest.Harden
 	}
 	h.Network.BlockTelemetry = blockTelemetry
 
-	fmt.Fprintf(out, "    Sets AutoUpdateEnabled=false in the Kobo config file.\n")
-	fmt.Fprintf(out, "    Prevents automatic firmware downloads that could reset hardening.\n")
-	blockOTA, err := p.Bool("Block OTA firmware updates?", true)
-	if err != nil {
-		return err
-	}
-	h.Network.BlockOTA = blockOTA
-
-	fmt.Fprintf(out, "    Sets AutoSync=false in the Kobo config file.\n")
-	fmt.Fprintf(out, "    Reading position and bookmarks stay on-device only.\n")
-	blockSync, err := p.Bool("Block cloud sync?", true)
-	if err != nil {
-		return err
-	}
-	h.Network.BlockSync = blockSync
-
-	fmt.Fprintf(out, "    Enables options to lock the Kobo Store and web browser.\n")
-	fmt.Fprintf(out, "    A 4-digit PIN must be set manually on-device after provisioning\n")
-	fmt.Fprintf(out, "    (More -> Settings -> Accounts -> Parental Controls).\n")
-	parentalEnabled, err := p.Bool("Enable parental controls guidance?", true)
-	if err != nil {
-		return err
-	}
-	h.Parental.Enabled = parentalEnabled
-	if parentalEnabled {
-		fmt.Fprintf(out, "    Prevents browsing or purchasing from the Kobo Store without the PIN.\n")
-		lockStore, err := p.Bool("Lock Kobo Store?", true)
-		if err != nil {
-			return err
-		}
-		h.Parental.LockStore = lockStore
-
-		fmt.Fprintf(out, "    Prevents access to the built-in Kobo web browser without the PIN.\n")
-		lockBrowser, err := p.Bool("Lock web browser?", true)
-		if err != nil {
-			return err
-		}
-		h.Parental.LockBrowser = lockBrowser
-
-		fmt.Fprintf(out, "  Note: PIN must be set on-device after provisioning:\n")
-		fmt.Fprintf(out, "  More -> Settings -> Accounts -> Parental Controls\n")
-	}
+	// OTA firmware updates and cloud sync are always disabled via Nickel
+	// (AutoUpdateEnabled=false, AutoSync=false) when hardening is enabled — no
+	// separate toggle. Parental controls (PIN, Store/Browser locks) cannot be set
+	// over USB and must be configured on the device touchscreen.
+	fmt.Fprintf(out, "  Note: OTA updates and cloud sync are disabled automatically.\n")
+	fmt.Fprintf(out, "  Note: set a parental PIN + Store/Browser locks on the device:\n")
+	fmt.Fprintf(out, "        More -> Settings -> Accounts -> Parental Controls\n")
 
 	fmt.Fprintf(out, "    Typing \"devmodeon\" in the Kobo search bar enables telnet on port 23\n")
 	fmt.Fprintf(out, "    with root access and no password. This kills telnetd and removes it\n")
@@ -316,15 +273,6 @@ func promptHardeningConfig(p *prompt.Prompter, out io.Writer, h *manifest.Harden
 	}
 	h.Services.DisableFTP = disableFTP
 
-	fmt.Fprintf(out, "    Removes SSH from inetd.conf, closing secure shell access.\n")
-	fmt.Fprintf(out, "    WARNING: Once disabled, the only way to get shell access is via\n")
-	fmt.Fprintf(out, "    serial console or re-provisioning with this option turned off.\n")
-	disableSSH, err := p.Bool("Disable SSH?", true)
-	if err != nil {
-		return err
-	}
-	h.Services.DisableSSH = disableSSH
-
 	fmt.Fprintf(out, "    Replaces .kobo/KoboRoot.tgz with a directory of the same name.\n")
 	fmt.Fprintf(out, "    The firmware init script checks \"-f KoboRoot.tgz\" which fails on a\n")
 	fmt.Fprintf(out, "    directory, blocking both rogue and legitimate firmware extraction.\n")
@@ -335,23 +283,10 @@ func promptHardeningConfig(p *prompt.Prompter, out io.Writer, h *manifest.Harden
 	}
 	h.Filesystem.DisableKoboRoot = guardKoboRoot
 
-	fmt.Fprintf(out, "    Deletes KOReader plugins that expose network services or browsing:\n")
-	fmt.Fprintf(out, "    webbrowser, SSH server, WebDAV file server, and send2ebook receiver.\n")
-	fmt.Fprintf(out, "    Keeps metadata/cover fetching, OPDS catalogs, and Calibre plugins.\n")
-	removePlugins, err := p.Bool("Remove dangerous KOReader plugins (SSH/WebDAV/browser)?", true)
-	if err != nil {
-		return err
-	}
-	h.Filesystem.RemoveDangerousPlugins = removePlugins
-
-	fmt.Fprintf(out, "    Creates a SQLite trigger on the AnalyticsEvents table that deletes\n")
-	fmt.Fprintf(out, "    all rows after any insert. Prevents telemetry accumulation even if\n")
-	fmt.Fprintf(out, "    the hosts-file blocklist is somehow bypassed.\n")
-	blockAnalytics, err := p.Bool("Block analytics database?", true)
-	if err != nil {
-		return err
-	}
-	h.Privacy.BlockAnalyticsDB = blockAnalytics
+	// Dangerous-plugin removal (webbrowser/SSH/WebDAV/send2ebook) and the
+	// analytics-blocking SQLite trigger always run when hardening is enabled.
+	fmt.Fprintf(out, "  Note: dangerous KOReader plugins are removed and an analytics-blocking\n")
+	fmt.Fprintf(out, "        SQLite trigger is installed automatically.\n")
 
 	fmt.Fprintf(out, "    Appends 14 domains to /etc/hosts pointing to 0.0.0.0, run at boot.\n")
 	fmt.Fprintf(out, "    Blocks: Kobo telemetry/store APIs, Google Analytics, DoubleClick,\n")

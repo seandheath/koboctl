@@ -14,7 +14,6 @@ import (
 func newInstallCommand() *cobra.Command {
 	var (
 		version  string
-		channel  string
 		noVerify bool
 	)
 
@@ -60,7 +59,6 @@ Components: koreader, nickelmenu, kfmon`,
 				cfg := manifest.KOReaderConfig{
 					Enabled: true,
 					Version: ver,
-					Channel: channel,
 				}
 				// If a manifest is present, install its configured plugins too.
 				if m, err := manifest.LoadManifest(manifestPath); err == nil {
@@ -82,7 +80,6 @@ Components: koreader, nickelmenu, kfmon`,
 	}
 
 	cmd.Flags().StringVar(&version, "version", "", `component version to install (default: "latest")`)
-	cmd.Flags().StringVar(&channel, "channel", "stable", `KOReader channel: "stable" or "nightly"`)
 	cmd.Flags().BoolVar(&noVerify, "no-verify", false, "skip SHA256 checksum verification")
 
 	return cmd

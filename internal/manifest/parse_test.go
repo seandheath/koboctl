@@ -82,8 +82,8 @@ func TestLoadManifest(t *testing.T) {
 	if !m.KOReader.Enabled {
 		t.Error("KOReader.Enabled should be true")
 	}
-	if m.KOReader.Channel != "stable" {
-		t.Errorf("KOReader.Channel = %q, want %q", m.KOReader.Channel, "stable")
+	if m.KOReader.Version != "latest" {
+		t.Errorf("KOReader.Version = %q, want %q", m.KOReader.Version, "latest")
 	}
 	if !m.KFMon.Enabled {
 		t.Error("KFMon.Enabled should be true")
@@ -124,15 +124,15 @@ func TestValidateManifest_KFMonRequired(t *testing.T) {
 	}
 }
 
-func TestValidateManifest_InvalidChannel(t *testing.T) {
+func TestValidateManifest_InvalidVersion(t *testing.T) {
 	m := &manifest.Manifest{}
 	m.KOReader.Enabled = true
-	m.KOReader.Channel = "beta"
+	m.KOReader.Version = "not-a-version"
 	m.KFMon.Enabled = true
 
 	errs := manifest.ValidateManifest(m)
 	if len(errs) == 0 {
-		t.Error("expected validation error for invalid channel")
+		t.Error("expected validation error for invalid version")
 	}
 }
 
@@ -151,7 +151,6 @@ func TestValidateManifest_MissingEntryLabel(t *testing.T) {
 func TestValidateManifest_Valid(t *testing.T) {
 	m := &manifest.Manifest{}
 	m.KOReader.Enabled = true
-	m.KOReader.Channel = "stable"
 	m.KOReader.Version = "v2024.11"
 	m.KFMon.Enabled = true
 	m.NickelMenu.Entries = []manifest.NickelMenuEntry{
@@ -167,7 +166,6 @@ func TestValidateManifest_Valid(t *testing.T) {
 func TestValidateManifest_UnknownPlugin(t *testing.T) {
 	m := &manifest.Manifest{}
 	m.KOReader.Enabled = true
-	m.KOReader.Channel = "stable"
 	m.KFMon.Enabled = true
 	m.KOReader.Plugins = []string{"not_a_real_plugin"}
 
@@ -180,7 +178,6 @@ func TestValidateManifest_UnknownPlugin(t *testing.T) {
 func TestValidateManifest_PluginBadVersion(t *testing.T) {
 	m := &manifest.Manifest{}
 	m.KOReader.Enabled = true
-	m.KOReader.Channel = "stable"
 	m.KFMon.Enabled = true
 	m.KOReader.Plugins = []string{"dynamic_panelzoom@notaversion"}
 
@@ -193,7 +190,6 @@ func TestValidateManifest_PluginBadVersion(t *testing.T) {
 func TestValidateManifest_PluginValid(t *testing.T) {
 	m := &manifest.Manifest{}
 	m.KOReader.Enabled = true
-	m.KOReader.Channel = "stable"
 	m.KFMon.Enabled = true
 	m.KOReader.Plugins = []string{"dynamic_panelzoom", "dynamic_panelzoom@v1.7.0"}
 

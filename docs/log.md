@@ -1,5 +1,37 @@
 # koboctl — Decision Log
 
+## 2026-07-06 — Remove inert manifest options
+
+**Decision:** Removed config options that were declared, validated, rendered, and
+shown in the TUI but not actually read by any install/hardening code (toggling
+them changed nothing on the device): `koreader.channel`,
+`hardening.network.block_ota`, `hardening.network.block_sync`,
+`hardening.services.disable_ssh`, the entire `[hardening.parental]` subsection,
+`hardening.filesystem.remove_dangerous_plugins`, and
+`hardening.privacy.block_analytics_db`.
+
+**Rationale:** Prompted by writing per-option help for the TUI — code inspection
+showed these flags do nothing. Rather than document toggles that misrepresent
+behavior, remove them so every remaining option is real. The underlying
+protections still happen: OTA/sync are disabled via Nickel (`AutoUpdateEnabled`/
+`AutoSync=false`); dangerous-plugin removal and the analytics-blocking SQLite
+trigger run unconditionally whenever hardening is enabled (`RunHarden`); the
+parental-PIN reminder is still printed and status still reports device parental
+state. SSH has no listening service on stock firmware.
+
+**Notes:**
+- Non-breaking: `manifest.LoadManifest` uses default `toml.Unmarshal`, which
+  ignores unknown keys — existing host/on-device `koboctl.toml`s with the removed
+  keys still parse; keys drop on next save.
+- The interactive `init` flow now prints short notes where prompts were removed
+  (OTA/sync auto-disabled; parental is manual; plugin-removal/analytics always on).
+
+**Known limitations left as-is (TODOs, not fixed here):**
+<!-- TODO — hardening.network.mode: offline/open are not implemented; only a
+     non-empty mode gates the DNS lockdown. Implement the tri-state or reduce it. -->
+<!-- TODO — hardening.network.block_telemetry gates the DNS lockdown, not the
+     /etc/hosts telemetry list (that's privacy.hosts_blocklist). Reconcile naming. -->
+
 ## 2026-07-04 — Device-primary manifest storage
 
 **Decision:** The manifest is now stored on the device at

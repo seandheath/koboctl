@@ -38,12 +38,8 @@ func ValidateManifest(m *Manifest) []error {
 		add(errors.New("kfmon must be enabled when koreader is enabled (KFMon is a dependency)"))
 	}
 
-	// Validate KOReader channel.
+	// Validate KOReader version and plugins.
 	if m.KOReader.Enabled {
-		ch := m.KOReader.Channel
-		if ch != "" && ch != "stable" && ch != "nightly" {
-			add(fmt.Errorf("koreader.channel must be \"stable\" or \"nightly\", got %q", ch))
-		}
 		ver := m.KOReader.Version
 		if ver != "" && ver != "latest" && !semverLoose.MatchString(ver) {
 			add(fmt.Errorf("koreader.version must be \"latest\" or a version tag (e.g., v2024.11), got %q", ver))

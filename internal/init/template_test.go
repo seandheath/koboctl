@@ -29,8 +29,8 @@ func TestRender_RoundTrip(t *testing.T) {
 	if parsed.KOReader.Enabled != m.KOReader.Enabled {
 		t.Errorf("KOReader.Enabled = %v, want %v", parsed.KOReader.Enabled, m.KOReader.Enabled)
 	}
-	if parsed.KOReader.Channel != m.KOReader.Channel {
-		t.Errorf("KOReader.Channel = %q, want %q", parsed.KOReader.Channel, m.KOReader.Channel)
+	if parsed.KOReader.Version != m.KOReader.Version {
+		t.Errorf("KOReader.Version = %q, want %q", parsed.KOReader.Version, m.KOReader.Version)
 	}
 	if parsed.KFMon.Enabled != m.KFMon.Enabled {
 		t.Errorf("KFMon.Enabled = %v, want %v", parsed.KFMon.Enabled, m.KFMon.Enabled)
@@ -68,7 +68,7 @@ func TestRender_CommentsPresent(t *testing.T) {
 		"metadata-only",
 		"CleanBrowsing",
 		"NOT SUPPORTED",
-		"Parental controls PIN must be set manually",
+		"Parental controls cannot be set over USB",
 		"Additional [[nickelmenu.entries]] blocks can be added manually",
 	}
 	for _, want := range required {

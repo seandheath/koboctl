@@ -21,8 +21,10 @@ var cleanBrowsingDNS = []string{"185.228.168.168", "185.228.169.168"}
 // SecureDefaults returns a hardened baseline manifest suitable for most users.
 //
 // Enabled: KOReader + KFMon + NickelMenu (with KOReader launch entry).
-// Hardening: metadata-only network mode, CleanBrowsing DNS, telemetry and OTA blocked,
-// telnet/FTP/SSH disabled, KoboRoot guard active, analytics trigger installed.
+// Hardening: metadata-only network mode, CleanBrowsing DNS, telemetry blocked,
+// telnet/FTP disabled, KoboRoot guard active. When hardening is enabled koboctl
+// also always removes dangerous KOReader plugins, installs the analytics-blocking
+// trigger, and disables OTA/sync via Nickel.
 func SecureDefaults() manifest.Manifest {
 	return manifest.Manifest{
 		Device: manifest.DeviceConfig{
@@ -30,7 +32,6 @@ func SecureDefaults() manifest.Manifest {
 		},
 		KOReader: manifest.KOReaderConfig{
 			Enabled: true,
-			Channel: "stable",
 			Version: "latest",
 		},
 		KFMon: manifest.KFMonConfig{
@@ -50,27 +51,17 @@ func SecureDefaults() manifest.Manifest {
 				Mode:           "metadata-only",
 				DNSServers:     cleanBrowsingDNS,
 				BlockTelemetry: true,
-				BlockOTA:       true,
-				BlockSync:      true,
-			},
-			Parental: manifest.HardeningParentalConfig{
-				Enabled:     true,
-				LockStore:   true,
-				LockBrowser: true,
 			},
 			Services: manifest.HardeningServicesConfig{
 				DisableTelnet: true,
 				DisableFTP:    true,
-				DisableSSH:    true,
 			},
 			Filesystem: manifest.HardeningFSConfig{
-				NoexecOnboard:          false, // NOT SUPPORTED — breaks KOReader/KFMon
-				DisableKoboRoot:        true,
-				RemoveDangerousPlugins: true,
+				NoexecOnboard:   false, // NOT SUPPORTED — breaks KOReader/KFMon
+				DisableKoboRoot: true,
 			},
 			Privacy: manifest.HardeningPrivacyConfig{
-				BlockAnalyticsDB: true,
-				HostsBlocklist:   true,
+				HostsBlocklist: true,
 			},
 		},
 	}
@@ -96,7 +87,5 @@ func ChildSafeDefaults() manifest.Manifest {
 	m.Hardening.Network.Mode = "offline"
 	m.Hardening.Network.DNSServers = nil // not applicable in offline mode
 	m.Hardening.Network.BlockTelemetry = true
-	m.Hardening.Network.BlockOTA = true
-	m.Hardening.Network.BlockSync = true
 	return m
 }

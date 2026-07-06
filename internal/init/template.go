@@ -28,8 +28,6 @@ mount = "{{.Device.Mount}}"
 # ---------------------------------------------------------------------------
 [koreader]
 enabled = {{.KOReader.Enabled}}
-# channel: "stable" (recommended) or "nightly" (latest features, less tested)
-channel = "{{.KOReader.Channel}}"
 # version: "latest" or a pinned release tag, e.g. "v2024.11"
 version = "{{.KOReader.Version}}"
 # plugins: KOReader plugins to install by name (from a built-in registry).
@@ -75,41 +73,37 @@ enabled = {{.Plato.Enabled}}
 enabled = {{.Hardening.Enabled}}
 
 [hardening.network]
-# mode controls what outbound WiFi access is permitted:
-#   "metadata-only" — KOReader metadata fetching only (recommended)
-#   "offline"       — block all outbound traffic via hosts blocklist
-#   "open"          — no restrictions
+# mode gates the DNS lockdown boot script (a non-empty mode enables it).
+# "metadata-only" keeps KOReader metadata hosts (Open Library, Google Books)
+# reachable; the full offline/open semantics are not yet implemented.
 mode = "{{.Hardening.Network.Mode}}"
-# dns_servers: CleanBrowsing Family Filter by default.
+# dns_servers: CleanBrowsing Family Filter by default. Staged into /etc/resolv.conf
+# (made immutable) via a boot script.
 # Alternatives: OpenDNS FamilyShield (208.67.222.123), Cloudflare for Families (1.1.1.3)
 dns_servers = [{{range $i, $s := .Hardening.Network.DNSServers}}{{if $i}}, {{end}}"{{$s}}"{{end}}]
+# block_telemetry gates the DNS lockdown (requires dns_servers). OTA and cloud
+# sync are always disabled via Nickel when hardening is enabled.
 block_telemetry = {{.Hardening.Network.BlockTelemetry}}
-block_ota       = {{.Hardening.Network.BlockOTA}}
-block_sync      = {{.Hardening.Network.BlockSync}}
 
-[hardening.parental]
-# Parental controls PIN must be set manually on the device after provisioning:
-#   More -> Settings -> Accounts -> Parental Controls
-# A 4-digit PIN is required. Factory reset is the only recovery if lost.
-enabled      = {{.Hardening.Parental.Enabled}}
-lock_store   = {{.Hardening.Parental.LockStore}}
-lock_browser = {{.Hardening.Parental.LockBrowser}}
+# Parental controls cannot be set over USB — configure a 4-digit PIN and the
+# Store/Browser locks on the device: More -> Settings -> Accounts -> Parental Controls.
 
 [hardening.services]
+# Disables the telnet backdoor (Kobo "devmodeon") and FTP via a boot script.
 disable_telnet = {{.Hardening.Services.DisableTelnet}}
 disable_ftp    = {{.Hardening.Services.DisableFTP}}
-disable_ssh    = {{.Hardening.Services.DisableSSH}}
 
 [hardening.filesystem]
 # noexec_onboard is NOT SUPPORTED — all Kobo hacked software (KOReader, KFMon,
 # NickelMenu, Plato) executes from the FAT32 partition. Do not change this.
-noexec_onboard          = false
-disable_koboroot        = {{.Hardening.Filesystem.DisableKoboRoot}}
-remove_dangerous_plugins = {{.Hardening.Filesystem.RemoveDangerousPlugins}}
+noexec_onboard   = false
+disable_koboroot = {{.Hardening.Filesystem.DisableKoboRoot}}
 
 [hardening.privacy]
-block_analytics_db = {{.Hardening.Privacy.BlockAnalyticsDB}}
-hosts_blocklist    = {{.Hardening.Privacy.HostsBlocklist}}
+# When hardening is enabled, koboctl always removes dangerous KOReader plugins
+# (webbrowser/SSH/WebDAV/send2ebook) and installs an analytics-blocking SQLite
+# trigger. hosts_blocklist toggles the /etc/hosts telemetry blocklist boot script.
+hosts_blocklist = {{.Hardening.Privacy.HostsBlocklist}}
 `
 
 // Render executes the annotated TOML template against m and returns the result.

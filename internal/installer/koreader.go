@@ -43,15 +43,11 @@ func InstallKOReader(ctx context.Context, mountPath string, cfg manifest.KOReade
 		return nil
 	}
 
-	// Resolve version and pick the right pattern based on channel.
+	// Resolve the release (latest or a pinned tag).
 	tag, assets, err := resolveVersion(ctx, ghClient, koreaderOwner, koreaderRepo, cfg.Version)
 	if err != nil {
 		return fmt.Errorf("koreader: resolving version: %w", err)
 	}
-
-	// Nightly builds use a slightly different naming scheme; fall back to same
-	// pattern and let FindAsset handle it.
-	_ = cfg.Channel // used implicitly via version resolution
 
 	asset, err := fetch.FindAsset(assets, koreaderPattern)
 	if err != nil {

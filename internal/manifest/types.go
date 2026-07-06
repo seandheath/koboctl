@@ -22,8 +22,6 @@ type DeviceConfig struct {
 // KOReaderConfig controls KOReader installation and configuration.
 type KOReaderConfig struct {
 	Enabled bool `toml:"enabled"`
-	// Channel is "stable" or "nightly".
-	Channel string `toml:"channel"`
 	// Version is a pinned release tag (e.g., "v2024.11") or "latest".
 	Version string `toml:"version"`
 	// Plugins is a list of KOReader plugins to install by registry name.
@@ -78,7 +76,6 @@ type PlatoConfig struct {
 type HardeningConfig struct {
 	Enabled    bool                    `toml:"enabled"`
 	Network    HardeningNetworkConfig  `toml:"network"`
-	Parental   HardeningParentalConfig `toml:"parental"`
 	Services   HardeningServicesConfig `toml:"services"`
 	Filesystem HardeningFSConfig       `toml:"filesystem"`
 	Privacy    HardeningPrivacyConfig  `toml:"privacy"`
@@ -93,22 +90,14 @@ type HardeningNetworkConfig struct {
 	Mode           string   `toml:"mode"`
 	DNSServers     []string `toml:"dns_servers"`
 	BlockTelemetry bool     `toml:"block_telemetry"`
-	BlockOTA       bool     `toml:"block_ota"`
-	BlockSync      bool     `toml:"block_sync"`
-}
-
-// HardeningParentalConfig controls Nickel parental control settings.
-type HardeningParentalConfig struct {
-	Enabled     bool `toml:"enabled"`
-	LockStore   bool `toml:"lock_store"`
-	LockBrowser bool `toml:"lock_browser"`
 }
 
 // HardeningServicesConfig controls which network services are disabled.
+// (SSH has no listening service on stock Kobo firmware; it is addressed by
+// removing SSH.koplugin and disabling Nickel debug services, not a config flag.)
 type HardeningServicesConfig struct {
 	DisableTelnet bool `toml:"disable_telnet"`
 	DisableFTP    bool `toml:"disable_ftp"`
-	DisableSSH    bool `toml:"disable_ssh"`
 }
 
 // HardeningFSConfig controls filesystem hardening operations.
@@ -117,13 +106,15 @@ type HardeningFSConfig struct {
 	// All hacked Kobo software (KOReader, KFMon, NickelMenu, Plato)
 	// executes from /mnt/onboard/.adds/ on the FAT32 partition.
 	// Setting noexec would break all of them.
-	NoexecOnboard          bool `toml:"noexec_onboard"`
-	DisableKoboRoot        bool `toml:"disable_koboroot"`
-	RemoveDangerousPlugins bool `toml:"remove_dangerous_plugins"`
+	NoexecOnboard   bool `toml:"noexec_onboard"`
+	DisableKoboRoot bool `toml:"disable_koboroot"`
 }
 
 // HardeningPrivacyConfig controls telemetry and analytics blocking.
+//
+// Note: when hardening is enabled, koboctl always removes dangerous KOReader
+// plugins and installs the analytics-blocking SQLite trigger; these are not
+// configurable toggles.
 type HardeningPrivacyConfig struct {
-	BlockAnalyticsDB bool `toml:"block_analytics_db"`
-	HostsBlocklist   bool `toml:"hosts_blocklist"`
+	HostsBlocklist bool `toml:"hosts_blocklist"`
 }
