@@ -1,5 +1,23 @@
 # koboctl — Decision Log
 
+## 2026-07-08 — Register the Scrawl KOReader plugin
+
+**Decision:** Added `scrawl` (seandheath/scrawl, asset `scrawl.koplugin.zip`) to the
+built-in plugin registry (`internal/plugins/registry.go`). Users opt in by listing
+`scrawl` under `[koreader] plugins`; `koboctl provision` fetches its latest GitHub
+release and installs it to `.adds/koreader/plugins/scrawl.koplugin/`, same path as
+`dynamic_panelzoom`. Also mentioned it in the generated `koboctl.toml` comment and
+the TUI plugin-browser description.
+
+**Rationale:** Scrawl is a first-party KOReader plugin (handwritten stylus notes on
+highlights) built alongside koboctl; registering it makes it installable through the
+existing declarative plugin path with no new machinery. Opt-in only — `SecureDefaults`
+keeps `plugins` empty.
+
+**Notes:**
+- Requires a GitHub release on the scrawl repo carrying `scrawl.koplugin.zip` (rooted
+  at `scrawl.koplugin/…`); without it, install fails cleanly at asset resolution.
+
 ## 2026-07-06 — Remove inert manifest options
 
 **Decision:** Removed config options that were declared, validated, rendered, and

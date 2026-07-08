@@ -31,7 +31,7 @@ enabled = {{.KOReader.Enabled}}
 # version: "latest" or a pinned release tag, e.g. "v2024.11"
 version = "{{.KOReader.Version}}"
 # plugins: KOReader plugins to install by name (from a built-in registry).
-# Pin a version with "name@vX.Y.Z". Available: dynamic_panelzoom
+# Pin a version with "name@vX.Y.Z". Available: dynamic_panelzoom, scrawl
 plugins = [{{range $i, $p := .KOReader.Plugins}}{{if $i}}, {{end}}"{{$p}}"{{end}}]
 
 # ---------------------------------------------------------------------------

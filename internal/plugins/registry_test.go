@@ -36,3 +36,16 @@ func TestLookup(t *testing.T) {
 		t.Error("unknown plugin should not be found")
 	}
 }
+
+func TestLookupScrawl(t *testing.T) {
+	src, ok := Lookup("scrawl")
+	if !ok {
+		t.Fatal("scrawl should be a registered plugin")
+	}
+	if src.Owner != "seandheath" || src.Repo != "scrawl" {
+		t.Errorf("unexpected source for scrawl: %+v", src)
+	}
+	if src.AssetPattern != "scrawl.koplugin.zip" {
+		t.Errorf("unexpected asset pattern: %q", src.AssetPattern)
+	}
+}
