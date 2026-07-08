@@ -567,12 +567,29 @@ func (m *model) View() string {
 		panesH = 6
 	}
 
+	// The right column stacks two bordered boxes (description over device info).
+	// Two borders cost 4 rows vs. the left pane's 2, so the combined right content
+	// budget is panesH-2. Description gets ~1/3; device info (more rows) gets ~2/3.
+	innerH := panesH - 2
+	if innerH < 4 {
+		innerH = 4
+	}
+	descH := innerH / 3
+	if descH < 3 {
+		descH = 3
+	}
+	statusH := innerH - descH
+
 	left := m.viewTree(leftW, panesH)
-	right := m.viewStatus(rightW, panesH)
+	descBody := m.viewDesc()
+	statusBody := m.viewStatus(rightW, statusH)
 
 	leftPane := m.paneStyle(focusTree).Width(leftW).Height(panesH).Render(left)
-	rightPane := m.st.paneBlurred.Width(rightW).Height(panesH).Render(right) // status pane is display-only
-	panes := lipgloss.JoinHorizontal(lipgloss.Top, leftPane, rightPane)
+	// Both right panes are display-only.
+	descPane := m.st.paneBlurred.Width(rightW).Height(descH).Render(descBody)
+	statusPane := m.st.paneBlurred.Width(rightW).Height(statusH).Render(statusBody)
+	rightCol := lipgloss.JoinVertical(lipgloss.Left, descPane, statusPane)
+	panes := lipgloss.JoinHorizontal(lipgloss.Top, leftPane, rightCol)
 
 	logPane := m.paneStyle(focusLog).Width(m.width - 4).Height(m.log.Height).Render(m.log.View())
 
@@ -654,6 +671,20 @@ func (m *model) renderRow(n *node) string {
 		row += m.st.dim.Render("  (" + n.note + ")")
 	}
 	return row
+}
+
+// viewDesc renders a description of the config node under the tree cursor. The
+// enclosing pane's width word-wraps the body (lipgloss is ANSI-aware).
+func (m *model) viewDesc() string {
+	if len(m.flat) == 0 {
+		return ""
+	}
+	n := m.flat[m.cursor]
+	desc := n.desc
+	if desc == "" {
+		desc = "No description available."
+	}
+	return m.st.group.Render(n.label) + "\n\n" + m.st.dim.Render(desc)
 }
 
 func (m *model) viewStatus(w, h int) string {

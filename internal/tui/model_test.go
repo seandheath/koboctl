@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"strings"
 	"testing"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -92,6 +93,23 @@ func TestModel_ViewDoesNotPanic(t *testing.T) {
 		m.choices = []string{"x", "y"}
 		m.pluginChecks = map[string]bool{"x": true}
 		_ = m.View()
+	}
+}
+
+func TestModel_ViewDescReflectsCursor(t *testing.T) {
+	m := newTestModel()
+	// Cursor index 4 is KOReader's "enabled" field (see TestModel_ActivateTogglesBool).
+	m.cursor = 4
+	n := m.flat[m.cursor]
+	if n.label != "enabled" || n.desc == "" {
+		t.Fatalf("unexpected node under cursor: label=%q desc=%q", n.label, n.desc)
+	}
+	out := m.viewDesc()
+	if !strings.Contains(out, n.label) {
+		t.Errorf("viewDesc missing label %q: %q", n.label, out)
+	}
+	if !strings.Contains(out, n.desc) {
+		t.Errorf("viewDesc missing description %q: %q", n.desc, out)
 	}
 }
 
