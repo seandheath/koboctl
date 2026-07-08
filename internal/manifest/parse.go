@@ -38,6 +38,11 @@ func ValidateManifest(m *Manifest) []error {
 		add(errors.New("kfmon must be enabled when koreader is enabled (KFMon is a dependency)"))
 	}
 
+	// Booting into KOReader requires KOReader itself (and hence KFMon) to be enabled.
+	if m.KOReader.BootIntoKOReader && !m.KOReader.Enabled {
+		add(errors.New("boot_into_koreader requires koreader to be enabled"))
+	}
+
 	// Validate KOReader version and plugins.
 	if m.KOReader.Enabled {
 		ver := m.KOReader.Version
