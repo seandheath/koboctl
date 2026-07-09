@@ -152,7 +152,7 @@ func buildTree(m *manifest.Manifest) []*node {
 		}}
 
 	plugins := &node{label: "plugins", kind: kindPlugins,
-		desc:    "Optional KOReader plugins. Press enter to browse and toggle available plugins (e.g. dynamic_panelzoom).",
+		desc:    "Optional KOReader plugins. Press enter to browse and toggle available plugins (e.g. dynamic_panelzoom, scrawl).",
 		getList: func() []string { return m.KOReader.Plugins },
 		setList: func(v []string) { m.KOReader.Plugins = v }}
 

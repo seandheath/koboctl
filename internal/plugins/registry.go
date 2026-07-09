@@ -30,6 +30,11 @@ var registry = map[string]Source{
 		Repo:         "koreader-dynamic-panelzoom",
 		AssetPattern: "dynamic_panelzoom.koplugin.zip",
 	},
+	"scrawl": {
+		Owner:        "seandheath",
+		Repo:         "scrawl",
+		AssetPattern: "scrawl.koplugin.zip",
+	},
 }
 
 // Lookup returns the Source for a registered plugin name.
