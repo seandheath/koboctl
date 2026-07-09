@@ -54,7 +54,6 @@ func SecureDefaults() manifest.Manifest {
 				DisableFTP:    true,
 			},
 			Filesystem: manifest.HardeningFSConfig{
-				NoexecOnboard:   false, // NOT SUPPORTED — breaks KOReader/KFMon
 				DisableKoboRoot: true,
 			},
 			Privacy: manifest.HardeningPrivacyConfig{

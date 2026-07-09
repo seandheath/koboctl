@@ -98,11 +98,6 @@ type HardeningServicesConfig struct {
 
 // HardeningFSConfig controls filesystem hardening operations.
 type HardeningFSConfig struct {
-	// NoexecOnboard is NOT SUPPORTED in v1.
-	// All hacked Kobo software (KOReader, KFMon, NickelMenu)
-	// executes from /mnt/onboard/.adds/ on the FAT32 partition.
-	// Setting noexec would break all of them.
-	NoexecOnboard   bool `toml:"noexec_onboard"`
 	DisableKoboRoot bool `toml:"disable_koboroot"`
 }
 

@@ -102,9 +102,6 @@ disable_telnet = {{.Hardening.Services.DisableTelnet}}
 disable_ftp    = {{.Hardening.Services.DisableFTP}}
 
 [hardening.filesystem]
-# noexec_onboard is NOT SUPPORTED — all Kobo hacked software (KOReader, KFMon,
-# NickelMenu) executes from the FAT32 partition. Do not change this.
-noexec_onboard   = false
 # disable_koboroot: replace .kobo/KoboRoot.tgz (the package the firmware auto-extracts
 # as root on boot) with a same-named directory so no rogue update can be applied;
 # harden-koboroot.sh re-establishes the guard after the legit first-boot update.

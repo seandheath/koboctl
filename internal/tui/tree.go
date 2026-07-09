@@ -141,16 +141,6 @@ func (n *node) withDesc(s string) *node { n.desc = s; return n }
 // buildTree constructs the full config tree for a manifest. Closures capture the
 // pointer, so the returned nodes edit m in place.
 func buildTree(m *manifest.Manifest) []*node {
-	noexec := &node{label: "noexec_onboard", kind: kindReadonly,
-		note: "unsupported — would break onboard software",
-		desc: "Would mount the onboard partition noexec. Unsupported — it breaks onboard software, so it stays off.",
-		getStr: func() string {
-			if m.Hardening.Filesystem.NoexecOnboard {
-				return "true"
-			}
-			return "false"
-		}}
-
 	plugins := &node{label: "plugins", kind: kindPlugins,
 		desc:    "Optional KOReader plugins. Press enter to browse and toggle available plugins (e.g. dynamic_panelzoom, scrawl).",
 		getList: func() []string { return m.KOReader.Plugins },
@@ -194,7 +184,6 @@ func buildTree(m *manifest.Manifest) []*node {
 				boolField("disable_ftp", &m.Hardening.Services.DisableFTP).withDesc("harden-devmode.sh also strips ftp from /etc/inetd.conf and HUPs inetd, closing the FTP file-transfer service."),
 			).withDesc("On-device network services, disabled via the harden-devmode.sh boot script."),
 			group("Filesystem",
-				noexec,
 				boolField("disable_koboroot", &m.Hardening.Filesystem.DisableKoboRoot).withDesc("Replaces .kobo/KoboRoot.tgz (the package the firmware auto-extracts as root on boot) with a same-named directory so no rogue update can be applied; harden-koboroot.sh re-establishes the guard after the legitimate first-boot firmware update consumes the original file."),
 			).withDesc("Filesystem-level hardening."),
 			group("Privacy",

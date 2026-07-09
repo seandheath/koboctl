@@ -1,5 +1,26 @@
 # koboctl — Decision Log
 
+## 2026-07-09 — Remove the noexec_onboard option
+
+**Decision:** Removed `hardening.filesystem.noexec_onboard` entirely: the
+`NoexecOnboard` field on `HardeningFSConfig`, its defaults, generated-config
+line/comment, the read-only TUI node, and the template test asserting it stayed
+false.
+
+**Rationale:** The option could never be enabled — all hacked Kobo software runs
+from `/mnt/onboard/.adds/` on the FAT32 partition, so mounting onboard noexec
+would break KOReader/KFMon/NickelMenu. It was pinned `false` and shown read-only,
+a config surface that only ever displayed a value it forbade changing. Dropping it
+removes the misleading knob; the constraint is documented in the log TODO below.
+
+**Notes:**
+- Non-breaking: `toml.Unmarshal` ignores the now-unknown `noexec_onboard` key;
+  the parse-tolerance golden manifest keeps the key to prove old configs still load.
+
+<!-- TODO — noexec_onboard was removed as an option, but the underlying idea (a
+     bind-mount/overlay that separates the .adds execution area from user-writable
+     space) is still open; revisit if a safe approach exists. -->
+
 ## 2026-07-09 — Remove Plato support
 
 **Decision:** Removed the Plato reader from koboctl: the `[plato]` manifest section

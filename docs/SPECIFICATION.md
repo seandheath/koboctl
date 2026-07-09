@@ -156,7 +156,6 @@ disable_ftp = true
 disable_ssh = true
 
 [hardening.filesystem]
-noexec_onboard = false     # Cannot enable without breaking KOReader
 disable_koboroot = true
 remove_dangerous_plugins = true
 
