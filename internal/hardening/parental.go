@@ -16,7 +16,7 @@ import (
 func CheckParentalControls(mountPoint string) (bool, error) {
 	dbPath := filepath.Join(mountPoint, ".kobo", "KoboReader.sqlite")
 
-	db, err := sql.Open("sqlite", dbPath+"?mode=ro")
+	db, err := openKoboDB(dbPath, true)
 	if err != nil {
 		return false, fmt.Errorf("opening kobo database: %w", err)
 	}

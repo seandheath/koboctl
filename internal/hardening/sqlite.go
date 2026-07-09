@@ -9,6 +9,26 @@ import (
 	_ "modernc.org/sqlite" // pure-Go SQLite driver; no CGO
 )
 
+// openKoboDB opens KoboReader.sqlite with a busy timeout so concurrent access
+// (e.g. the TUI's device-status poll opening it read-only) waits briefly instead
+// of failing immediately with SQLITE_BUSY.
+func openKoboDB(dbPath string, readOnly bool) (*sql.DB, error) {
+	dsn := dbPath
+	if readOnly {
+		dsn += "?mode=ro"
+	}
+	db, err := sql.Open("sqlite", dsn)
+	if err != nil {
+		return nil, err
+	}
+	db.SetMaxOpenConns(1) // single connection, so the PRAGMA below always applies
+	if _, err := db.Exec("PRAGMA busy_timeout=5000"); err != nil {
+		db.Close()
+		return nil, err
+	}
+	return db, nil
+}
+
 // BypassSetupWizard inserts a dummy user record into KoboReader.sqlite so the
 // Kobo firmware skips the initial setup wizard (language, WiFi, account screens).
 //
@@ -23,7 +43,7 @@ func BypassSetupWizard(mountPoint string) error {
 		return nil
 	}
 
-	db, err := sql.Open("sqlite", dbPath)
+	db, err := openKoboDB(dbPath, false)
 	if err != nil {
 		return fmt.Errorf("opening kobo database: %w", err)
 	}
@@ -89,7 +109,7 @@ func InstallAnalyticsTrigger(mountPoint string) error {
 		}
 	}
 
-	db, err := sql.Open("sqlite", dbPath)
+	db, err := openKoboDB(dbPath, false)
 	if err != nil {
 		return fmt.Errorf("opening kobo database: %w", err)
 	}
