@@ -69,27 +69,38 @@ enabled = {{.Plato.Enabled}}
 # ---------------------------------------------------------------------------
 # Hardening — security and privacy hardening for the device
 # ---------------------------------------------------------------------------
+# Root-filesystem (/etc/*) changes can't be written over USB, so they are staged
+# as .adds/koboctl/harden-*.sh scripts run at each boot via the KFMon on_boot hook.
 [hardening]
+# When enabled, koboctl always (regardless of the toggles below):
+#   - edits .kobo/Kobo/Kobo eReader.conf: AutoUpdateEnabled=false, AutoSync=false,
+#     EnableDebugServices=false, SideloadedMode=true (disables OTA + cloud sync);
+#   - adds an AFTER INSERT trigger on AnalyticsEvents in .kobo/KoboReader.sqlite
+#     that deletes analytics rows as they arrive (DB backed up to .koboctl-backup);
+#   - removes the webbrowser/SSH/MyWebDav/send2ebook KOReader .koplugin dirs.
 enabled = {{.Hardening.Enabled}}
 
 [hardening.network]
-# mode gates the DNS lockdown boot script (a non-empty mode enables it).
-# "metadata-only" keeps KOReader metadata hosts (Open Library, Google Books)
-# reachable; the full offline/open semantics are not yet implemented.
+# mode: any non-empty value (or block_telemetry) stages harden-dns.sh, which at
+# boot rewrites /etc/resolv.conf to dns_servers and marks it immutable (chattr +i).
+# offline/open are not yet distinct — any non-empty value just enables the lockdown.
 mode = "{{.Hardening.Network.Mode}}"
-# dns_servers: CleanBrowsing Family Filter by default. Staged into /etc/resolv.conf
-# (made immutable) via a boot script.
+# dns_servers: the nameserver lines harden-dns.sh writes into /etc/resolv.conf
+# (CleanBrowsing Family Filter by default). The file is made immutable so udhcpc
+# cannot overwrite it on WiFi connect.
 # Alternatives: OpenDNS FamilyShield (208.67.222.123), Cloudflare for Families (1.1.1.3)
 dns_servers = [{{range $i, $s := .Hardening.Network.DNSServers}}{{if $i}}, {{end}}"{{$s}}"{{end}}]
-# block_telemetry gates the DNS lockdown (requires dns_servers). OTA and cloud
-# sync are always disabled via Nickel when hardening is enabled.
+# block_telemetry also enables the harden-dns.sh DNS lockdown (uses dns_servers).
+# The /etc/hosts telemetry blocklist is the separate privacy.hosts_blocklist toggle.
 block_telemetry = {{.Hardening.Network.BlockTelemetry}}
 
 # Parental controls cannot be set over USB — configure a 4-digit PIN and the
 # Store/Browser locks on the device: More -> Settings -> Accounts -> Parental Controls.
 
 [hardening.services]
-# Disables the telnet backdoor (Kobo "devmodeon") and FTP via a boot script.
+# harden-devmode.sh runs each boot. disable_telnet: pkill telnetd + strip telnet
+# from /etc/inetd.conf(.local) + HUP inetd (closes the passwordless-root "devmodeon"
+# backdoor). disable_ftp: strip ftp from /etc/inetd.conf + HUP inetd.
 disable_telnet = {{.Hardening.Services.DisableTelnet}}
 disable_ftp    = {{.Hardening.Services.DisableFTP}}
 
@@ -97,12 +108,15 @@ disable_ftp    = {{.Hardening.Services.DisableFTP}}
 # noexec_onboard is NOT SUPPORTED — all Kobo hacked software (KOReader, KFMon,
 # NickelMenu, Plato) executes from the FAT32 partition. Do not change this.
 noexec_onboard   = false
+# disable_koboroot: replace .kobo/KoboRoot.tgz (the package the firmware auto-extracts
+# as root on boot) with a same-named directory so no rogue update can be applied;
+# harden-koboroot.sh re-establishes the guard after the legit first-boot update.
 disable_koboroot = {{.Hardening.Filesystem.DisableKoboRoot}}
 
 [hardening.privacy]
-# When hardening is enabled, koboctl always removes dangerous KOReader plugins
-# (webbrowser/SSH/WebDAV/send2ebook) and installs an analytics-blocking SQLite
-# trigger. hosts_blocklist toggles the /etc/hosts telemetry blocklist boot script.
+# hosts_blocklist stages harden-hosts.sh: appends 0.0.0.0 entries to /etc/hosts for
+# Kobo/Rakuten telemetry, Google Analytics, DoubleClick, Hotjar, and ipinfodb
+# (idempotent, marker-guarded).
 hosts_blocklist = {{.Hardening.Privacy.HostsBlocklist}}
 `
 
