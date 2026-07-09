@@ -33,6 +33,9 @@ version = "{{.KOReader.Version}}"
 # plugins: KOReader plugins to install by name (from a built-in registry).
 # Pin a version with "name@vX.Y.Z". Available: dynamic_panelzoom
 plugins = [{{range $i, $p := .KOReader.Plugins}}{{if $i}}, {{end}}"{{$p}}"{{end}}]
+# boot_into_koreader: launch KOReader automatically at power-on (via KFMon
+# on_boot). Exiting KOReader returns to the normal Kobo (Nickel) home.
+boot_into_koreader = {{.KOReader.BootIntoKOReader}}
 
 # ---------------------------------------------------------------------------
 # KFMon — filesystem monitor; required dependency for KOReader and Plato

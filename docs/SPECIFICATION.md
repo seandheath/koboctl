@@ -272,6 +272,19 @@ partition. USB Mass Storage only exposes FAT32.
 `on_boot_trigger = true`). A 1×1 transparent PNG at `/mnt/onboard/koboctl.png`
 satisfies KFMon's trigger image requirement without adding a visible book.
 
+### Boot directly into KOReader
+
+The `[koreader] boot_into_koreader` option (default `false`) makes the device
+launch KOReader automatically at power-on instead of settling on the stock Kobo
+home screen (Nickel). It reuses the same KFMon `on_boot` primitive as the
+hardening hook: when enabled, `on_boot = true` / `on_boot_trigger = true` are
+written into KOReader's KFMon watch config at
+`/mnt/onboard/.adds/kfmon/config/koreader.ini`, so KFMon auto-triggers the
+KOReader launch (`/mnt/onboard/.adds/koreader/koreader.sh`) during boot
+initialisation. Exiting KOReader returns to Nickel — this is not a Nickel
+replacement, and the change is fully reversible (re-provision with the option
+off). Requires `koreader.enabled` (and therefore KFMon).
+
 ### Persistence across firmware updates
 
 Firmware updates overwrite the ext4 root filesystem, resetting `/etc/hosts`,

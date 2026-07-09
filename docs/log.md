@@ -20,6 +20,36 @@ setting) applies to the connection that runs the query.
 - WAL mode: rejected — larger on-device footprint (-wal/-shm files on the
   device's DB) for no benefit at this contention level.
 
+## 2026-07-08 — Boot directly into KOReader
+
+**Decision:** Added `[koreader] boot_into_koreader` (default `false`). When set,
+KOReader's KFMon watch config (`.adds/kfmon/config/koreader.ini`) gains
+`on_boot = true` / `on_boot_trigger = true`, so KFMon auto-launches KOReader at
+power-on. Exiting KOReader returns to Nickel. Validation requires
+`koreader.enabled`.
+
+**Rationale:** KFMon's `on_boot` hook is already the project's proven boot
+primitive (used by the hardening runner, `internal/hardening/runner.go`). The
+KOReader launch trigger already exists as a KFMon watch (`koreader.ini`); adding
+the two boot keys to its `[kobo]` section is the smallest, most consistent change
+and requires no ext4 modification, no init scripts, and no config-flow changes
+(`RunProvision` already passes the whole `m.KOReader` into `InstallKOReader`).
+
+**Alternatives considered:**
+- *Full Nickel replacement* (suppress Nickel entirely): rejected — requires ext4
+  root / startup surgery, high brick risk, and no precedent in the codebase.
+- *A dedicated `harden-*.sh`/boot script that spawns koreader.sh*: unnecessary —
+  KFMon can trigger the existing watch target directly via `on_boot`.
+
+**Notes / to validate on-device:**
+<!-- TODO:FEATURE — Confirm the patched KFMon (v1.4.6-179-ge000d65) honors
+     on_boot for a QOBJECT watch target. If it only auto-runs `command =` entries,
+     switch koreader.ini's boot form to
+     `command = /bin/sh /mnt/onboard/.adds/koreader/koreader.sh` (mirror
+     kfmonBootINI). One-line change in kfmonKOReaderINI(). -->
+<!-- TODO:FEATURE — Optionally surface boot_into_koreader state in the TUI device
+     status pane (read koreader.ini for on_boot). Config toggle only for v1. -->
+
 ## 2026-07-06 — Remove inert manifest options
 
 **Decision:** Removed config options that were declared, validated, rendered, and

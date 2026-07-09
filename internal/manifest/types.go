@@ -28,6 +28,9 @@ type KOReaderConfig struct {
 	// Each entry is "name" (latest) or "name@vX.Y.Z" to pin a version.
 	// See the plugin registry in internal/installer/plugins.go.
 	Plugins []string `toml:"plugins"`
+	// BootIntoKOReader launches KOReader automatically at device power-on via
+	// KFMon's on_boot hook. Exiting KOReader returns to the stock Kobo UI (Nickel).
+	BootIntoKOReader bool `toml:"boot_into_koreader"`
 }
 
 // NickelMenuConfig controls NickelMenu installation and menu entries.

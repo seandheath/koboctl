@@ -171,6 +171,7 @@ func buildTree(m *manifest.Manifest) []*node {
 		group("KOReader",
 			boolField("enabled", &m.KOReader.Enabled).withDesc("Install and manage KOReader on the device, and add a launcher so it starts from the home screen."),
 			strField("version", &m.KOReader.Version).withDesc("Pin a specific KOReader release tag. Leave blank to track the latest known-good release."),
+			boolField("boot_into_koreader", &m.KOReader.BootIntoKOReader).withDesc("Launch KOReader automatically when the device powers on, instead of the stock Kobo home screen (Nickel). Uses KFMon's on-boot hook; exiting KOReader returns to Nickel. Requires KOReader enabled."),
 			plugins,
 		).withDesc("A full-featured document reader (PDF, EPUB, DjVu, CBZ) with advanced typesetting and a plugin system."),
 		group("KFMon",

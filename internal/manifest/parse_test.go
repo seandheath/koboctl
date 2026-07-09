@@ -124,6 +124,17 @@ func TestValidateManifest_KFMonRequired(t *testing.T) {
 	}
 }
 
+func TestValidateManifest_BootIntoKOReaderRequiresKOReader(t *testing.T) {
+	m := &manifest.Manifest{}
+	m.KOReader.BootIntoKOReader = true
+	m.KOReader.Enabled = false
+
+	errs := manifest.ValidateManifest(m)
+	if len(errs) == 0 {
+		t.Error("expected validation error when boot_into_koreader set but koreader disabled")
+	}
+}
+
 func TestValidateManifest_InvalidVersion(t *testing.T) {
 	m := &manifest.Manifest{}
 	m.KOReader.Enabled = true
