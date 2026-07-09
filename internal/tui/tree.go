@@ -141,16 +141,6 @@ func (n *node) withDesc(s string) *node { n.desc = s; return n }
 // buildTree constructs the full config tree for a manifest. Closures capture the
 // pointer, so the returned nodes edit m in place.
 func buildTree(m *manifest.Manifest) []*node {
-	noexec := &node{label: "noexec_onboard", kind: kindReadonly,
-		note: "unsupported — would break onboard software",
-		desc: "Would mount the onboard partition noexec. Unsupported — it breaks onboard software, so it stays off.",
-		getStr: func() string {
-			if m.Hardening.Filesystem.NoexecOnboard {
-				return "true"
-			}
-			return "false"
-		}}
-
 	plugins := &node{label: "plugins", kind: kindPlugins,
 		desc:    "Optional KOReader plugins. Press enter to browse and toggle available plugins (e.g. dynamic_panelzoom, scrawl).",
 		getList: func() []string { return m.KOReader.Plugins },
@@ -176,16 +166,12 @@ func buildTree(m *manifest.Manifest) []*node {
 		).withDesc("A full-featured document reader (PDF, EPUB, DjVu, CBZ) with advanced typesetting and a plugin system."),
 		group("KFMon",
 			boolField("enabled", &m.KFMon.Enabled).withDesc("Install KFMon, the on-device launcher that makes third-party apps startable directly from Nickel."),
-		).withDesc("A launcher/watchdog that starts KOReader, Plato, or other apps from the Kobo home screen via 'book' cover icons — no USB needed."),
+		).withDesc("A launcher/watchdog that starts KOReader or other apps from the Kobo home screen via 'book' cover icons — no USB needed."),
 		group("NickelMenu",
 			boolField("enabled", &m.NickelMenu.Enabled).withDesc("Install NickelMenu to add custom entries to the Kobo's native menus."),
 			strField("version", &m.NickelMenu.Version).withDesc("Pin a specific NickelMenu release. Leave blank for the latest known-good release."),
 			nmNote,
 		).withDesc("Injects custom entries into the stock Nickel reader UI for quick access to scripts and apps."),
-		group("Plato",
-			boolField("enabled", &m.Plato.Enabled).withDesc("Install and manage the Plato reader on the device."),
-			strField("version", &m.Plato.Version).withDesc("Pin a specific Plato release. Leave blank for the latest known-good release."),
-		).withDesc("A lightweight alternative document reader focused on speed and a minimal interface."),
 		group("Hardening",
 			boolField("enabled", &m.Hardening.Enabled).withDesc("Master switch for the hardening below. When on, koboctl always: edits .kobo/Kobo/Kobo eReader.conf (AutoUpdateEnabled=false, AutoSync=false, EnableDebugServices=false, SideloadedMode=true); adds an AFTER INSERT trigger on AnalyticsEvents in KoboReader.sqlite that deletes rows as they arrive (DB backed up to KoboReader.sqlite.koboctl-backup); and removes the webbrowser/SSH/MyWebDav/send2ebook .koplugin dirs. Root-filesystem changes can't be written over USB, so they are staged as .adds/koboctl/harden-*.sh scripts run at each boot via the KFMon on_boot hook."),
 			group("Network",
@@ -198,7 +184,6 @@ func buildTree(m *manifest.Manifest) []*node {
 				boolField("disable_ftp", &m.Hardening.Services.DisableFTP).withDesc("harden-devmode.sh also strips ftp from /etc/inetd.conf and HUPs inetd, closing the FTP file-transfer service."),
 			).withDesc("On-device network services, disabled via the harden-devmode.sh boot script."),
 			group("Filesystem",
-				noexec,
 				boolField("disable_koboroot", &m.Hardening.Filesystem.DisableKoboRoot).withDesc("Replaces .kobo/KoboRoot.tgz (the package the firmware auto-extracts as root on boot) with a same-named directory so no rogue update can be applied; harden-koboroot.sh re-establishes the guard after the legitimate first-boot firmware update consumes the original file."),
 			).withDesc("Filesystem-level hardening."),
 			group("Privacy",

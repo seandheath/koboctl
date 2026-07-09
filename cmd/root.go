@@ -24,7 +24,7 @@ func NewRootCommand() *cobra.Command {
 		Short: "Kobo e-reader provisioning and management CLI",
 		Long: `koboctl provisions and manages hacked Kobo e-readers from a Linux workstation.
 
-It automates installation of KOReader, KFMon, NickelMenu, and Plato, and applies
+It automates installation of KOReader, KFMon, and NickelMenu, and applies
 security hardening from a declarative TOML manifest.`,
 		SilenceErrors: true,
 		SilenceUsage:  true,

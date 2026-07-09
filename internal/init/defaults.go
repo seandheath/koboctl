@@ -42,9 +42,6 @@ func SecureDefaults() manifest.Manifest {
 			Version: "latest",
 			Entries: []manifest.NickelMenuEntry{koreaderNMEntry},
 		},
-		Plato: manifest.PlatoConfig{
-			Enabled: false,
-		},
 		Hardening: manifest.HardeningConfig{
 			Enabled: true,
 			Network: manifest.HardeningNetworkConfig{
@@ -57,7 +54,6 @@ func SecureDefaults() manifest.Manifest {
 				DisableFTP:    true,
 			},
 			Filesystem: manifest.HardeningFSConfig{
-				NoexecOnboard:   false, // NOT SUPPORTED — breaks KOReader/KFMon
 				DisableKoboRoot: true,
 			},
 			Privacy: manifest.HardeningPrivacyConfig{

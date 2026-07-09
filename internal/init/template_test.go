@@ -53,9 +53,6 @@ func TestRender_RoundTrip(t *testing.T) {
 	if !parsed.Hardening.Filesystem.DisableKoboRoot {
 		t.Error("Hardening.Filesystem.DisableKoboRoot should be true")
 	}
-	if parsed.Hardening.Filesystem.NoexecOnboard {
-		t.Error("noexec_onboard must always be false")
-	}
 }
 
 func TestRender_CommentsPresent(t *testing.T) {
@@ -67,7 +64,6 @@ func TestRender_CommentsPresent(t *testing.T) {
 	required := []string{
 		"metadata-only",
 		"CleanBrowsing",
-		"NOT SUPPORTED",
 		"Parental controls cannot be set over USB",
 		"Additional [[nickelmenu.entries]] blocks can be added manually",
 	}

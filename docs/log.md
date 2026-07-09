@@ -1,5 +1,45 @@
 # koboctl — Decision Log
 
+## 2026-07-09 — Remove the noexec_onboard option
+
+**Decision:** Removed `hardening.filesystem.noexec_onboard` entirely: the
+`NoexecOnboard` field on `HardeningFSConfig`, its defaults, generated-config
+line/comment, the read-only TUI node, and the template test asserting it stayed
+false.
+
+**Rationale:** The option could never be enabled — all hacked Kobo software runs
+from `/mnt/onboard/.adds/` on the FAT32 partition, so mounting onboard noexec
+would break KOReader/KFMon/NickelMenu. It was pinned `false` and shown read-only,
+a config surface that only ever displayed a value it forbade changing. Dropping it
+removes the misleading knob; the constraint is documented in the log TODO below.
+
+**Notes:**
+- Non-breaking: `toml.Unmarshal` ignores the now-unknown `noexec_onboard` key;
+  the parse-tolerance golden manifest keeps the key to prove old configs still load.
+
+<!-- TODO — noexec_onboard was removed as an option, but the underlying idea (a
+     bind-mount/overlay that separates the .adds execution area from user-writable
+     space) is still open; revisit if a safe approach exists. -->
+
+## 2026-07-09 — Remove Plato support
+
+**Decision:** Removed the Plato reader from koboctl: the `[plato]` manifest section
+(`PlatoConfig` + the `Manifest.Plato` field), its `init` prompt, generated-config
+template section, TUI config group, defaults, and help/README/spec mentions.
+
+**Rationale:** Plato was never implemented — a stub `{enabled, version}` with no
+validator and no installer; provision/install ignored it entirely. Carrying a
+config surface that does nothing misrepresents behavior (same reasoning as the
+2026-07-06 inert-options removal). koboctl standardizes on KOReader.
+
+**Notes:**
+- Non-breaking: `toml.Unmarshal` ignores unknown keys, so existing
+  host/on-device `koboctl.toml`s with a `[plato]` section still parse; the key
+  drops on next save.
+- Left as factual references: the `baskerville/plato` prior-art link in the spec
+  and the `icons/plato.png` comment in `kfmon.go` (the upstream KFMon zip really
+  does ship that icon).
+
 ## 2026-07-09 — Add busy timeout to KoboReader.sqlite connections
 
 **Decision:** All four `.kobo/KoboReader.sqlite` opens in `internal/hardening`
