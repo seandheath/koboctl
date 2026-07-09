@@ -1,5 +1,25 @@
 # koboctl — Decision Log
 
+## 2026-07-09 — Add busy timeout to KoboReader.sqlite connections
+
+**Decision:** All four `.kobo/KoboReader.sqlite` opens in `internal/hardening`
+now go through a new `openKoboDB(dbPath, readOnly)` helper that sets
+`db.SetMaxOpenConns(1)` and `PRAGMA busy_timeout=5000`.
+
+**Rationale:** `provision` failed intermittently with `database is locked (5)
+(SQLITE_BUSY)` (seen in `BypassSetupWizard`/`InstallAnalyticsTrigger`). The opens
+used a bare `sql.Open` with no busy timeout, so any concurrent access errored
+immediately — the contender is the TUI's 2-second device-status poll opening the
+same DB read-only. A 5s busy timeout serializes the sub-millisecond reads/writes
+instead of failing. `SetMaxOpenConns(1)` guarantees the PRAGMA (a per-connection
+setting) applies to the connection that runs the query.
+
+**Alternatives considered:**
+- Gate the TUI poll while an action runs: rejected — busy_timeout alone
+  serializes the tiny operations; no cross-goroutine coordination needed.
+- WAL mode: rejected — larger on-device footprint (-wal/-shm files on the
+  device's DB) for no benefit at this contention level.
+
 ## 2026-07-06 — Remove inert manifest options
 
 **Decision:** Removed config options that were declared, validated, rendered, and

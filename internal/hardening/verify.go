@@ -2,13 +2,11 @@ package hardening
 
 import (
 	"bufio"
-	"database/sql"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/seandheath/koboctl/internal/manifest"
-	_ "modernc.org/sqlite" // pure-Go SQLite driver; no CGO
 )
 
 // HardeningState reports the current hardening status of a mounted Kobo device.
@@ -76,7 +74,7 @@ func checkAnalyticsTrigger(mountPoint string) bool {
 		return false
 	}
 
-	db, err := sql.Open("sqlite", dbPath+"?mode=ro")
+	db, err := openKoboDB(dbPath, true)
 	if err != nil {
 		return false
 	}
