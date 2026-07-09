@@ -110,8 +110,8 @@ func TestInitCommand_InteractiveChildSafe(t *testing.T) {
 	// Simulate: accept all defaults (bare Enter) until hardening section,
 	// then answer "y" to child-safe shortcut.
 	// Questions in order:
-	//   model, koreader?, version, nickelmenu?, plato?, hardening?, child-safe?
-	stdinInput := "\n\n\n\n\n\ny\n"
+	//   model, koreader?, version, nickelmenu?, hardening?, child-safe?
+	stdinInput := "\n\n\n\n\ny\n"
 
 	_, _, err := runInit(t, []string{"init", "--output", outPath}, stdinInput)
 	if err != nil {

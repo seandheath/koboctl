@@ -16,7 +16,7 @@ Running `koboctl` with no arguments on a terminal opens the interactive TUI
 │   channel            stable         │ fw 4.39.22801          │
 │   version            latest         │ /media/u/KOBOeReader   │
 │   plugins            1 selected     │ ─ components ─         │
-│ ▸ KFMon  ▸ NickelMenu  ▸ Plato      │ ✓ KFMon    v1.4.6      │
+│ ▸ KFMon  ▸ NickelMenu               │ ✓ KFMon    v1.4.6      │
 │ ▾ Hardening                         │ ✓ KOReader v2024.11    │
 │   ▸ Network ▸ Parental ▸ Services   │ ✗ NickelMenu           │
 ├──────────────────────────────────────┴───────────────────────┤

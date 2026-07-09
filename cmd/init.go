@@ -167,17 +167,6 @@ func runQuestionFlow(cmd *cobra.Command, p *prompt.Prompter) (manifest.Manifest,
 	}
 	fmt.Fprintln(out)
 
-	// --- Plato ---
-	fmt.Fprintln(out, "[Plato]")
-	fmt.Fprintf(out, "    Lightweight alternative document reader (EPUB, PDF, CBZ, DJVU).\n")
-	fmt.Fprintf(out, "    WARNING: Not yet supported by koboctl. This option is a placeholder.\n")
-	platoEnabled, err := p.Bool("Install Plato (alternative reader)?", false)
-	if err != nil {
-		return m, err
-	}
-	m.Plato.Enabled = platoEnabled
-	fmt.Fprintln(out)
-
 	// --- Hardening ---
 	fmt.Fprintln(out, "[Hardening]")
 	fmt.Fprintf(out, "    Master toggle for all security hardening options below.\n")

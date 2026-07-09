@@ -1,5 +1,24 @@
 # koboctl — Decision Log
 
+## 2026-07-09 — Remove Plato support
+
+**Decision:** Removed the Plato reader from koboctl: the `[plato]` manifest section
+(`PlatoConfig` + the `Manifest.Plato` field), its `init` prompt, generated-config
+template section, TUI config group, defaults, and help/README/spec mentions.
+
+**Rationale:** Plato was never implemented — a stub `{enabled, version}` with no
+validator and no installer; provision/install ignored it entirely. Carrying a
+config surface that does nothing misrepresents behavior (same reasoning as the
+2026-07-06 inert-options removal). koboctl standardizes on KOReader.
+
+**Notes:**
+- Non-breaking: `toml.Unmarshal` ignores unknown keys, so existing
+  host/on-device `koboctl.toml`s with a `[plato]` section still parse; the key
+  drops on next save.
+- Left as factual references: the `baskerville/plato` prior-art link in the spec
+  and the `icons/plato.png` comment in `kfmon.go` (the upstream KFMon zip really
+  does ship that icon).
+
 ## 2026-07-09 — Add busy timeout to KoboReader.sqlite connections
 
 **Decision:** All four `.kobo/KoboReader.sqlite` opens in `internal/hardening`

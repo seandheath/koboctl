@@ -38,7 +38,7 @@ plugins = [{{range $i, $p := .KOReader.Plugins}}{{if $i}}, {{end}}"{{$p}}"{{end}
 boot_into_koreader = {{.KOReader.BootIntoKOReader}}
 
 # ---------------------------------------------------------------------------
-# KFMon — filesystem monitor; required dependency for KOReader and Plato
+# KFMon — filesystem monitor; required dependency for KOReader
 # ---------------------------------------------------------------------------
 [kfmon]
 enabled = {{.KFMon.Enabled}}
@@ -62,12 +62,6 @@ chain    = "{{.Chain}}"
 {{end}}
 # Additional [[nickelmenu.entries]] blocks can be added manually above.
 # See: https://github.com/pgaskin/NickelMenu#configuration
-
-# ---------------------------------------------------------------------------
-# Plato — alternative e-book reader (not fully implemented in phase 1)
-# ---------------------------------------------------------------------------
-[plato]
-enabled = {{.Plato.Enabled}}
 
 # ---------------------------------------------------------------------------
 # Hardening — security and privacy hardening for the device
@@ -109,7 +103,7 @@ disable_ftp    = {{.Hardening.Services.DisableFTP}}
 
 [hardening.filesystem]
 # noexec_onboard is NOT SUPPORTED — all Kobo hacked software (KOReader, KFMon,
-# NickelMenu, Plato) executes from the FAT32 partition. Do not change this.
+# NickelMenu) executes from the FAT32 partition. Do not change this.
 noexec_onboard   = false
 # disable_koboroot: replace .kobo/KoboRoot.tgz (the package the firmware auto-extracts
 # as root on boot) with a same-named directory so no rogue update can be applied;

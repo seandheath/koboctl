@@ -2,7 +2,7 @@
 
 ## Overview
 
-`koboctl` is a Go CLI tool for provisioning and hardening Kobo e-readers from a Linux workstation over USB. It automates installation of KOReader, NickelMenu, KFMon, and Plato, and applies a comprehensive security hardening profile — turning a stock Kobo into a locked-down, vendor-free reading device in a single command.
+`koboctl` is a Go CLI tool for provisioning and hardening Kobo e-readers from a Linux workstation over USB. It automates installation of KOReader, NickelMenu, and KFMon, and applies a comprehensive security hardening profile — turning a stock Kobo into a locked-down, vendor-free reading device in a single command.
 
 The tool operates in **USB mode**: filesystem operations on a Kobo mounted as USB Mass Storage. All modifications are staged to the FAT32 partition (`/mnt/onboard`) accessible via USB; modifications to the ext4 root filesystem (e.g., `/etc/hosts`) are staged as boot scripts executed at first boot via the KFMon `on_boot` hook.
 
@@ -156,7 +156,7 @@ disable_ftp = true
 disable_ssh = true
 
 [hardening.filesystem]
-noexec_onboard = false     # Cannot enable without breaking KOReader/Plato
+noexec_onboard = false     # Cannot enable without breaking KOReader
 disable_koboroot = true
 remove_dangerous_plugins = true
 

@@ -42,9 +42,6 @@ func SecureDefaults() manifest.Manifest {
 			Version: "latest",
 			Entries: []manifest.NickelMenuEntry{koreaderNMEntry},
 		},
-		Plato: manifest.PlatoConfig{
-			Enabled: false,
-		},
 		Hardening: manifest.HardeningConfig{
 			Enabled: true,
 			Network: manifest.HardeningNetworkConfig{
